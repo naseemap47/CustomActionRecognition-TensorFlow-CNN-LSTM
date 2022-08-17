@@ -2,27 +2,40 @@ import cv2
 from collections import deque
 import numpy as np
 from keras.models import load_model
+import argparse
+import os
 
 
-IMAGE_HEIGHT , IMAGE_WIDTH = 64, 64
- 
+ap = argparse.ArgumentParser()
+ap.add_argument("-i", "--dataset", type=str, required=True,
+                help="path to csv Data")
 # Specify the number of frames of a video that will be fed to the model as one sequence.
-SEQUENCE_LENGTH = 20
- 
-# Specify the directory containing the UCF50 dataset. 
-DATASET_DIR = "UCF50"
- 
-# Specify the list containing the names of the classes used for training. Feel free to choose any set of classes.
-CLASSES_LIST = ["WalkingWithDog", "TaiChi", "Swing", "HorseRace"]
+ap.add_argument("-l", "--seq_len", type=int, default=20,
+                help="length of Sequence")
+ap.add_argument("-s", "--size", type=int, default=64,
+                help="Specify the height and width to which each video frame will be resized in our dataset.")
+ap.add_argument("-m", "--model", type=str,  required=True,
+                help="path to model.h5")
+ap.add_argument("-v", "--source", type=str, required=True,
+                help="path to video or web-cam")
+
+args = vars(ap.parse_args())
+DATASET_DIR = args["dataset"]
+SEQUENCE_LENGTH = args["seq_len"]
+IMAGE_SIZE = args["size"]
+path_to_model = args["model"]
+video_path = args["source"]
+
+CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
 
 # Load LRCN_model
-LRCN_model = load_model('LRCN_model_2022_08_09__06_39_33_Loss_0.2544_Accuracy_0.898.h5')
+saved_model = load_model(path_to_model)
 
 # url_link = 'https://www.youtube.com/watch?v=8u0qjmHIOcE'
-video_path = 'test.mp4'
-
-# urllib.request.urlretrieve(url_link, video_path)
-
+# video_path = 'test.mp4'
+# Web-cam
+if video_path.isnumeric():
+    video_path = int(video_path)
 video_reader = cv2.VideoCapture(video_path)
 
 # Get the width and height of the video.
@@ -30,12 +43,7 @@ original_video_width = int(video_reader.get(cv2.CAP_PROP_FRAME_WIDTH))
 original_video_height = int(video_reader.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 # Declare a queue to store video frames.
-frames_queue = deque(maxlen = SEQUENCE_LENGTH)
-
-# Initialize a variable to store the predicted action being performed in the video.
-# predicted_class_name = ''
-
-
+frames_queue = deque(maxlen=SEQUENCE_LENGTH)
 
 while video_reader.isOpened():
     success, frame = video_reader.read()
@@ -44,8 +52,7 @@ while video_reader.isOpened():
         break
 
     # Resize the Frame to fixed Dimensions.
-    resized_frame = cv2.resize(frame, (IMAGE_HEIGHT, IMAGE_WIDTH))
-
+    resized_frame = cv2.resize(frame, (IMAGE_SIZE, IMAGE_SIZE))
 
     # Normalize the resized frame by dividing it with 255 so that each pixel value then lies between 0 and 1.
     normalized_frame = resized_frame / 255
@@ -57,7 +64,8 @@ while video_reader.isOpened():
     if len(frames_queue) == SEQUENCE_LENGTH:
 
         # Pass the normalized frames to the model and get the predicted probabilities.
-        predicted_labels_probabilities = LRCN_model.predict(np.expand_dims(frames_queue, axis = 0))[0]
+        predicted_labels_probabilities = saved_model.predict(
+            np.expand_dims(frames_queue, axis=0))[0]
 
         # Get the index of class with highest probability.
         predicted_label = np.argmax(predicted_labels_probabilities)
@@ -66,10 +74,10 @@ while video_reader.isOpened():
         predicted_class_name = CLASSES_LIST[predicted_label]
 
         # Write predicted class name on top of the frame.
-        cv2.putText(frame, predicted_class_name, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-    
+        cv2.putText(frame, predicted_class_name, (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
     cv2.imshow('Out', frame)
-    if cv2.waitKey(1) & 0xFF==ord('q'):
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         cv2.destroyAllWindows()
         break
-
