@@ -15,6 +15,7 @@ wget --no-check-certificate https://www.crcv.ucf.edu/data/UCF50.rar
 #Extract the Dataset
 unrar x UCF50.rar
 ```
+**Inside Data Directory - Folder with Class Name - Inside each class folder - Video data for that Action Class**
 ## Train Custom Model
 `--dataset`: path to dataset dir <br>
 `--seq_len`: The number of frames of a video that will be fed to the model as one sequence <br>
