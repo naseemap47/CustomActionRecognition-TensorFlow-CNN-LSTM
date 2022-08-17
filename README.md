@@ -48,3 +48,4 @@ python3 inference.py --dataset data/ --seq_len 20 --size 64 --model LRCN_model.h
 # web-cam
 python3 inference.py --dataset data/ --seq_len 20 --size 64 --model LRCN_model.h5 --source 0
 ```
+**To Exit Window - Press Q-key**
