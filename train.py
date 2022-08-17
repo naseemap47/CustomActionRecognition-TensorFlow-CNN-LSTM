@@ -68,9 +68,17 @@ elif model_type == 'LRCN':
 else:
     print('[INFO] Model NOT Choosen!!')
 
+# Model Dir
+path_to_model_dir = f'{model_type}'
+os.makedirs(path_to_model_dir, exist_ok=True)
+print(f'Created {path_to_model_dir} Folder')
+
+png_name = f'{model_type}_model_str.png'
+path_to_model_str = os.path.join(path_to_model_dir, png_name)
 # Plot the structure of the contructed model.
-plot_model(model, to_file=f'{model_type}_model_str.png',
+plot_model(model, to_file=path_to_model_str,
            show_shapes=True, show_layer_names=True)
+print(f'[INFO] Successfully Created {png_name}')
 
 # Create an Instance of Early Stopping Callback
 early_stopping_callback = EarlyStopping(
@@ -94,7 +102,7 @@ model_evaluation_loss, model_evaluation_accuracy = model_evaluation_history
 model_file_name = f'{model_type}_model_loss_{model_evaluation_loss:.3}_acc_{model_evaluation_accuracy:.3}.h5'
 
 # Save your Model.
-model.save(model_file_name)
+model.save(os.path.join(path_to_model_dir, model_file_name))
 print(f'[INFO] Model {model_file_name} saved Successfully..')
 
 
@@ -120,10 +128,12 @@ plt.title(str('Model Metrics'))
 plt.legend(['loss', 'val_loss', 'accuracy', 'val_accuracy'])
 
 # If the plot already exist, remove
-plot_png = os.path.exists('metrics.png')
+metrics_png_name = f'{model_type}_metrics.png'
+path_to_metrics = os.path.join(path_to_model_dir, metrics_png_name)
+plot_png = os.path.exists(path_to_metrics)
 if plot_png:
-    os.remove('metrics.png')
-    plt.savefig('metrics.png', bbox_inches='tight')
+    os.remove(path_to_metrics)
+    plt.savefig(path_to_metrics, bbox_inches='tight')
 else:
-    plt.savefig(f'{model_type}_metrics.png', bbox_inches='tight')
-print('[INFO] Successfully Saved metrics.png')
+    plt.savefig(path_to_metrics, bbox_inches='tight')
+print(f'[INFO] Successfully Saved {metrics_png_name}')
