@@ -30,12 +30,18 @@ ap.add_argument("-s", "--size", type=int, default=64,
 ap.add_argument("-m", "--model", type=str,  default='LRCN',
                 choices=['convLSTM', 'LRCN'],
                 help="select model type convLSTM or LRCN")
+ap.add_argument("-e", "--epochs", type=int, default=70,
+                help="number of epochs")
+ap.add_argument("-b", "--batch_size", type=int, default=4,
+                help="number of batch_size")
 
 args = vars(ap.parse_args())
 DATASET_DIR = args["dataset"]
 SEQUENCE_LENGTH = args["seq_len"]
 IMAGE_SIZE = args["size"]
 model_type = args["model"]
+epochs = args["epochs"]
+batch_size = args["batch_size"]
 
 # Specify the list containing the names of the classes used for training. Feel free to choose any set of classes.
 CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
@@ -54,11 +60,11 @@ features_train, features_test, labels_train, labels_test = train_test_split(
 if model_type == 'convLSTM':
     print("[INFO] Selected convLSTM Model")
     model = convlstm_model(SEQUENCE_LENGTH, IMAGE_SIZE, CLASSES_LIST)
-    print("convLSTM Created Successfully!")
+    print("[INFO] convLSTM Created Successfully!")
 elif model_type == 'LRCN':
     print("[INFO] Selected LRCN Model")
     model = LRCN_model(SEQUENCE_LENGTH, IMAGE_SIZE, CLASSES_LIST)
-    print("LRCN Created Successfully!")
+    print("[INFO] LRCN Created Successfully!")
 else:
     print('[INFO] Model NOT Choosen!!')
 
@@ -75,7 +81,7 @@ model.compile(loss='categorical_crossentropy',
               optimizer='Adam', metrics=["accuracy"])
 
 # Start training the model.
-history = model.fit(x=features_train, y=labels_train, epochs=70, batch_size=4,
+history = model.fit(x=features_train, y=labels_train, epochs=epochs, batch_size=batch_size,
                     shuffle=True, validation_split=0.2, callbacks=[early_stopping_callback])
 
 # Evaluate the trained model.
