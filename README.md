@@ -35,6 +35,7 @@ python3 train.py --dataset data/ --seq_len 20 --size 64 --model convLSTM --epoch
 ```
 python3 train.py --dataset data/ --seq_len 20 --size 64 --model LRCN --epochs 70 --batch_size 4
 ```
+**The Output model, history plot and Model str plot will be Saved in corresponding its Model Dir**
 ## Inference
 `--dataset`: path to dataset dir <br>
 `--seq_len`: The number of frames of a video that will be fed to the model as one sequence <br>
