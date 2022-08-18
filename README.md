@@ -17,6 +17,11 @@ unrar x UCF50.rar
 ```
 **Inside Data Directory - Folder with Class Name - Inside each class folder - Video data for that Action Class**
 ## Train Custom Model
+:memo: Note: <br>
+Model Dir: **LRCN** and **convLSTM** for sample Demo to understand how will be the output, You can remove that Dir.
+If you NOT remove the Dir, its will never affect your Model or Training,
+It will replace with your Model <br>
+
 `--dataset`: path to dataset dir <br>
 `--seq_len`: The number of frames of a video that will be fed to the model as one sequence <br>
 `--size`: The height and width to which each video frame will be resized in our dataset <br>
@@ -36,7 +41,7 @@ python3 train.py --dataset data/ --seq_len 20 --size 64 --model convLSTM --epoch
 python3 train.py --dataset data/ --seq_len 20 --size 64 --model LRCN --epochs 70 --batch_size 4
 ```
 **The Output model, history plot and Model str plot will be Saved in corresponding its Model Dir**
-### Training on Colab [Error]
+### :warning: Training on Colab [Error]
 **DNN library is not found**
 ```
 # Install latest version
