@@ -73,9 +73,9 @@ else:
 path_to_model_dir = f'{model_type}'
 if not os.path.isdir(path_to_model_dir):
     os.makedirs(path_to_model_dir, exist_ok=True)
-    print(f'Created {path_to_model_dir} Folder')
+    print(f'[INFO] Created {path_to_model_dir} Folder')
 else:
-    print(f'{path_to_model_dir} Folder Already Exist')
+    print(f'[INFO] {path_to_model_dir} Folder Already Exist')
     f = glob.glob(path_to_model_dir + '/*')
     for i in f:
         os.remove(i)
@@ -95,9 +95,13 @@ early_stopping_callback = EarlyStopping(
 model.compile(loss='categorical_crossentropy',
               optimizer='Adam', metrics=["accuracy"])
 
+print(f'[INFO] {model_type} Model Training Started...')
+
 # Start training the model.
 history = model.fit(x=features_train, y=labels_train, epochs=epochs, batch_size=batch_size,
                     shuffle=True, validation_split=0.2, callbacks=[early_stopping_callback])
+
+print(f'[INFO] Successfully Completed {model_type} Model Training')
 
 # Evaluate the trained model.
 model_evaluation_history = model.evaluate(features_test, labels_test)
