@@ -2,6 +2,7 @@ import random
 import numpy as np
 import tensorflow as tf
 import os
+import glob
 import matplotlib.pyplot as plt
 import argparse
 
@@ -70,8 +71,14 @@ else:
 
 # Model Dir
 path_to_model_dir = f'{model_type}'
-os.makedirs(path_to_model_dir, exist_ok=True)
-print(f'Created {path_to_model_dir} Folder')
+if not os.path.isdir(path_to_model_dir):
+    os.makedirs(path_to_model_dir, exist_ok=True)
+    print(f'Created {path_to_model_dir} Folder')
+else:
+    print(f'{path_to_model_dir} Folder Already Exist')
+    f = glob.glob(path_to_model_dir + '/*')
+    for i in f:
+        os.remove(i)
 
 png_name = f'{model_type}_model_str.png'
 path_to_model_str = os.path.join(path_to_model_dir, png_name)
