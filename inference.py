@@ -18,6 +18,8 @@ ap.add_argument("-m", "--model", type=str,  required=True,
                 help="path to model.h5")
 ap.add_argument("-v", "--source", type=str, required=True,
                 help="path to video or web-cam")
+ap.add_argument("-c", "--conf", type=float, required=True,
+                help="Prediction confidence (0<conf<1)")
 
 args = vars(ap.parse_args())
 DATASET_DIR = args["dataset"]
@@ -25,6 +27,7 @@ SEQUENCE_LENGTH = args["seq_len"]
 IMAGE_SIZE = args["size"]
 path_to_model = args["model"]
 video_path = args["source"]
+thresh = args['conf']
 
 CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
 
@@ -69,13 +72,19 @@ while video_reader.isOpened():
 
         # Get the index of class with highest probability.
         predicted_label = np.argmax(predicted_labels_probabilities)
+        
+        if predicted_labels_probabilities[predicted_label] > thresh:
 
-        # Get the class name using the retrieved index.
-        predicted_class_name = CLASSES_LIST[predicted_label]
+            # Get the class name using the retrieved index.
+            predicted_class_name = CLASSES_LIST[predicted_label]
 
-        # Write predicted class name on top of the frame.
-        cv2.putText(frame, predicted_class_name, (10, 30),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            # Write predicted class name on top of the frame.
+            cv2.putText(frame, predicted_class_name, (10, 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 3)
+
+        else:
+            cv2.putText(frame, 'Action NOT Detetced', (10, 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 3)
 
     cv2.imshow('Out', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
