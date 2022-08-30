@@ -1,6 +1,14 @@
 # CustomActivityRecognition-TensorFlow-CNN-LSTM
 Custom Activity Recognition using TensorFlow (CNN + LSTM)
 ## Custom Activity Recognition model
+### Install dependency
+```
+pip3 install -r requirement.txt
+```
+```
+xargs sudo apt-get install <packages.txt
+```
+
 ### Clone this Repository
 ```
 git clone https://github.com/naseemap47/CustomActivityRecognition-TensorFlow-CNN-LSTM.git
@@ -52,12 +60,13 @@ python3 train.py --dataset data/ --seq_len 20 --size 64 --model LRCN --epochs 70
 `--seq_len`: The number of frames of a video that will be fed to the model as one sequence <br>
 `--size`: The height and width to which each video frame will be resized in our dataset <br>
 `--model`: path to trained custom model <br>
+`--conf`: Model Prediction Confidence <br>
 `--source`: path to test video
 - Web-cam: `--source 0`
 ```
-python3 inference.py --dataset data/ --seq_len 20 --size 64 --model LRCN_model.h5 --source data/test/video.mp4
+python3 inference.py --dataset data/ --seq_len 20 --size 64 --model LRCN_model.h5 --conf 0.75 --source data/test/video.mp4
 
 # web-cam
-python3 inference.py --dataset data/ --seq_len 20 --size 64 --model LRCN_model.h5 --source 0
+python3 inference.py --dataset data/ --seq_len 20 --size 64 --model LRCN_model.h5 --conf 0.75 --source 0
 ```
 **To Exit Window - Press Q-key**
