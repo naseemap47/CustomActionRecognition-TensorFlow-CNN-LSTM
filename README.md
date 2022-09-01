@@ -1,18 +1,18 @@
 # CustomActivityRecognition-TensorFlow-CNN-LSTM
 Custom Activity Recognition using TensorFlow (CNN + LSTM)
 ## Custom Activity Recognition model
+
+### Clone this Repository
+```
+git clone https://github.com/naseemap47/CustomActivityRecognition-TensorFlow-CNN-LSTM.git
+cd CustomActivityRecognition-TensorFlow-CNN-LSTM
+```
 ### Install dependency
 ```
 pip3 install -r requirement.txt
 ```
 ```
 xargs sudo apt-get install <packages.txt
-```
-
-### Clone this Repository
-```
-git clone https://github.com/naseemap47/CustomActivityRecognition-TensorFlow-CNN-LSTM.git
-cd CustomActivityRecognition-TensorFlow-CNN-LSTM
 ```
 ### Take Custom Activity Recognition Data
 Example: **UCF50 Dataset** <br>
