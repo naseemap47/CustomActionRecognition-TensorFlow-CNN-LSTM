@@ -73,7 +73,7 @@ while video_reader.isOpened():
         # Get the index of class with highest probability.
         predicted_label = np.argmax(predicted_labels_probabilities)
         
-        if predicted_labels_probabilities[predicted_label] > thresh:
+        if max(predicted_labels_probabilities) > thresh:
 
             # Get the class name using the retrieved index.
             predicted_class_name = CLASSES_LIST[predicted_label]
