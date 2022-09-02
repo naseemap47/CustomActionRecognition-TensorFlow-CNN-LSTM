@@ -20,6 +20,8 @@ ap.add_argument("-v", "--source", type=str, required=True,
                 help="path to video or web-cam")
 ap.add_argument("-c", "--conf", type=float, required=True,
                 help="Prediction confidence (0<conf<1)")
+ap.add_argument("--save", action='store_true',
+                help="Save video")
 
 args = vars(ap.parse_args())
 DATASET_DIR = args["dataset"]
@@ -28,6 +30,7 @@ IMAGE_SIZE = args["size"]
 path_to_model = args["model"]
 video_path = args["source"]
 thresh = args['conf']
+save = args['save']
 
 CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
 
@@ -44,6 +47,12 @@ video_reader = cv2.VideoCapture(video_path)
 # Get the width and height of the video.
 original_video_width = int(video_reader.get(cv2.CAP_PROP_FRAME_WIDTH))
 original_video_height = int(video_reader.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+# Write Video
+if save:
+    out_vid = cv2.VideoWriter('output.avi', 
+                         cv2.VideoWriter_fourcc(*'MJPG'),
+                         10, (original_video_width, original_video_height))
 
 # Declare a queue to store video frames.
 frames_queue = deque(maxlen=SEQUENCE_LENGTH)
@@ -85,8 +94,15 @@ while video_reader.isOpened():
         else:
             cv2.putText(frame, 'Action NOT Detetced', (50, 60),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+    # Write Video
+    if save:
+        out_vid.write(frame)
 
     cv2.imshow('Out', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
-        cv2.destroyAllWindows()
         break
+
+video_reader.release()
+if save:
+    out_vid.release()
+cv2.destroyAllWindows()
