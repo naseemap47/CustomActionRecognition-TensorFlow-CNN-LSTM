@@ -61,12 +61,20 @@ python3 train.py --dataset data/ --seq_len 20 --size 64 --model LRCN --epochs 70
 `--size`: The height and width to which each video frame will be resized in our dataset <br>
 `--model`: path to trained custom model <br>
 `--conf`: Model Prediction Confidence <br>
+`--save`: Save output video ("output.mp4")
 `--source`: path to test video
 - Web-cam: `--source 0`
 ```
 python3 inference.py --dataset data/ --seq_len 20 --size 64 --model LRCN_model.h5 --conf 0.75 --source data/test/video.mp4
 
+# to save output video
+python3 inference.py --dataset data/ --seq_len 20 --size 64 --model LRCN_model.h5 --conf 0.75 --source data/test/video.mp4 --save
+```
+```
 # web-cam
 python3 inference.py --dataset data/ --seq_len 20 --size 64 --model LRCN_model.h5 --conf 0.75 --source 0
+
+# to save output video
+python3 inference.py --dataset data/ --seq_len 20 --size 64 --model LRCN_model.h5 --conf 0.75 --source 0 --save
 ```
 **To Exit Window - Press Q-key**
