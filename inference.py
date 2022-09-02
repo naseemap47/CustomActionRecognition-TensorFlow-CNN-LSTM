@@ -79,12 +79,12 @@ while video_reader.isOpened():
             predicted_class_name = CLASSES_LIST[predicted_label]
 
             # Write predicted class name on top of the frame.
-            cv2.putText(frame, predicted_class_name, (10, 30),
-                        cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 3)
+            cv2.putText(frame, predicted_class_name, (50, 60),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
         else:
-            cv2.putText(frame, 'Action NOT Detetced', (10, 30),
-                        cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 3)
+            cv2.putText(frame, 'Action NOT Detetced', (50, 60),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
     cv2.imshow('Out', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
