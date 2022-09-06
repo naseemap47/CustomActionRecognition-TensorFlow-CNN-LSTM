@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 
-def frames_extraction(video_path, SEQUENCE_LENGTH, IMAGE_SIZE):
+def frames_extraction(video_path, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model):
     '''
     This function will extract the required frames from a video after resizing and normalizing them.
     Args:
@@ -37,15 +37,30 @@ def frames_extraction(video_path, SEQUENCE_LENGTH, IMAGE_SIZE):
         # Check if Video frame is not successfully read then break the loop
         if not success:
             break
+        
+        bbox_list = []
+        # Action - ROI
+        results = yolov7_model(frame)
+        # Bounding Box
+        box = results.pandas().xyxy[0]
 
-        # Resize the Frame to fixed height and width.
-        resized_frame = cv2.resize(frame, (IMAGE_SIZE, IMAGE_SIZE))
+        for i in box.index:
+            xmin, ymin, xmax, ymax = int(box['xmin'][i]), int(box['ymin'][i]), int(box['xmax'][i]), int(box['ymax'][i])
+            bbox_list.append([xmin, ymin, xmax, ymax])
 
-        # Normalize the resized frame by dividing it with 255 so that each pixel value then lies between 0 and 1
-        normalized_frame = resized_frame / 255
+        if len(bbox_list)>0:
+            # for bbox in bbox_list:
+            # Only taking One bbox
+            bbox = bbox_list[0]
+            frame_roi = frame[bbox[1]:bbox[3], bbox[0]:bbox[2]]
+            # Resize the Frame to fixed height and width.
+            resized_frame = cv2.resize(frame_roi, (IMAGE_SIZE, IMAGE_SIZE))
 
-        # Append the normalized frame into the frames list
-        frames_list.append(normalized_frame)
+            # Normalize the resized frame by dividing it with 255 so that each pixel value then lies between 0 and 1
+            normalized_frame = resized_frame / 255
+
+            # Append the normalized frame into the frames list
+            frames_list.append(normalized_frame)
 
     # Release the VideoCapture object.
     video_reader.release()
@@ -54,7 +69,7 @@ def frames_extraction(video_path, SEQUENCE_LENGTH, IMAGE_SIZE):
     return frames_list
 
 
-def create_dataset(CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE):
+def create_dataset(CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model):
     '''
     This function will extract the data of the selected classes and create the required dataset.
     Returns:
@@ -85,7 +100,7 @@ def create_dataset(CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE):
 
             # Extract the frames of the video file.
             frames = frames_extraction(
-                video_file_path, SEQUENCE_LENGTH, IMAGE_SIZE)
+                video_file_path, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model)
 
             # Check if the extracted frames are equal to the SEQUENCE_LENGTH specified above.
             # So ignore the vides having frames less than the SEQUENCE_LENGTH.
