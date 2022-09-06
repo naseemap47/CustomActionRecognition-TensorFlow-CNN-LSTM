@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import argparse
 
 from utils.hubconf import custom
-from utils.plots import plot_one_box
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.utils import to_categorical
 from keras.callbacks import EarlyStopping
