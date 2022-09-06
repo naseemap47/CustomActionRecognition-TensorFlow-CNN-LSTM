@@ -4,6 +4,8 @@ import numpy as np
 from keras.models import load_model
 import argparse
 import os
+from utils.hubconf import custom
+from utils.plots import plot_one_box
 
 
 ap = argparse.ArgumentParser()
@@ -22,6 +24,8 @@ ap.add_argument("-c", "--conf", type=float, required=True,
                 help="Prediction confidence (0<conf<1)")
 ap.add_argument("--save", action='store_true',
                 help="Save video")
+ap.add_argument("-d", "--detect-model", type=str,  required=True,
+                help="path to YOLOv7 model")
 
 args = vars(ap.parse_args())
 DATASET_DIR = args["dataset"]
@@ -31,11 +35,15 @@ path_to_model = args["model"]
 video_path = args["source"]
 thresh = args['conf']
 save = args['save']
+yolov7_model_path = args["detect-model"]
 
 CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
 
 # Load LRCN_model
 saved_model = load_model(path_to_model)
+
+# YOLOv7 Model
+yolov7_model = custom(path_or_model=yolov7_model_path)
 
 # url_link = 'https://www.youtube.com/watch?v=8u0qjmHIOcE'
 # video_path = 'test.mp4'
@@ -62,38 +70,63 @@ while video_reader.isOpened():
 
     if not success:
         break
+    
+    bbox_list = []
+    # Action - ROI
+    results = yolov7_model(frame)
+    # Bounding Box
+    box = results.pandas().xyxy[0]
 
-    # Resize the Frame to fixed Dimensions.
-    resized_frame = cv2.resize(frame, (IMAGE_SIZE, IMAGE_SIZE))
+    for i in box.index:
+        xmin, ymin, xmax, ymax = int(box['xmin'][i]), int(box['ymin'][i]), int(box['xmax'][i]), int(box['ymax'][i])
+        bbox_list.append([xmin, ymin, xmax, ymax])
 
-    # Normalize the resized frame by dividing it with 255 so that each pixel value then lies between 0 and 1.
-    normalized_frame = resized_frame / 255
+    if len(bbox_list)>0:
+        for bbox in bbox_list:
+            frame_roi = frame[bbox[1]:bbox[3], bbox[0]:bbox[2]]
 
-    # Appending the pre-processed frame into the frames list.
-    frames_queue.append(normalized_frame)
+            # Resize the Frame to fixed Dimensions.
+            resized_frame = cv2.resize(frame_roi, (IMAGE_SIZE, IMAGE_SIZE))
 
-    # Check if the number of frames in the queue are equal to the fixed sequence length.
-    if len(frames_queue) == SEQUENCE_LENGTH:
+            # Normalize the resized frame by dividing it with 255 so that each pixel value then lies between 0 and 1.
+            normalized_frame = resized_frame / 255
 
-        # Pass the normalized frames to the model and get the predicted probabilities.
-        predicted_labels_probabilities = saved_model.predict(
-            np.expand_dims(frames_queue, axis=0))[0]
+            # Appending the pre-processed frame into the frames list.
+            frames_queue.append(normalized_frame)
 
-        # Get the index of class with highest probability.
-        predicted_label = np.argmax(predicted_labels_probabilities)
-        
-        if max(predicted_labels_probabilities) > thresh:
+            # Check if the number of frames in the queue are equal to the fixed sequence length.
+            if len(frames_queue) == SEQUENCE_LENGTH:
 
-            # Get the class name using the retrieved index.
-            predicted_class_name = CLASSES_LIST[predicted_label]
+                # Pass the normalized frames to the model and get the predicted probabilities.
+                predicted_labels_probabilities = saved_model.predict(
+                    np.expand_dims(frames_queue, axis=0))[0]
 
-            # Write predicted class name on top of the frame.
-            cv2.putText(frame, predicted_class_name, (50, 60),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                # Get the index of class with highest probability.
+                predicted_label = np.argmax(predicted_labels_probabilities)
+                
+                if max(predicted_labels_probabilities) > thresh:
 
-        else:
-            cv2.putText(frame, 'Action NOT Detetced', (50, 60),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    # Get the class name using the retrieved index.
+                    predicted_class_name = CLASSES_LIST[predicted_label]
+
+                    # Write predicted class name on top of the frame.
+                    # cv2.putText(frame, predicted_class_name, (bbox[0], bbox[1]),
+                    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                    
+                    plot_one_box(
+                        bbox, frame, label=predicted_class_name,
+                        color=[0,255,0], line_thickness=2
+                    )
+
+                else:
+                    # cv2.putText(frame, 'Action NOT Detetced', (bbox[0], bbox[1]),
+                    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+
+                    plot_one_box(
+                        bbox, frame, label='Action NOT Detetced',
+                        color=[0,0,255], line_thickness=2
+                    )
+
     # Write Video
     if save:
         out_vid.write(frame)
