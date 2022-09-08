@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 
-def frames_extraction(video_path, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model):
+def frames_extraction(video_path, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model, yolov7_conf):
     '''
     This function will extract the required frames from a video after resizing and normalizing them.
     Args:
@@ -38,7 +38,7 @@ def frames_extraction(video_path, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model):
         if not success:
             print('[INFO] Video Reading Failed or Video Ended..')
             break
-        
+
         bbox_list = []
         # Action - ROI
         results = yolov7_model(frame)
@@ -46,22 +46,28 @@ def frames_extraction(video_path, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model):
         box = results.pandas().xyxy[0]
 
         for i in box.index:
-            xmin, ymin, xmax, ymax = int(box['xmin'][i]), int(box['ymin'][i]), int(box['xmax'][i]), int(box['ymax'][i])
-            bbox_list.append([xmin, ymin, xmax, ymax])
+            xmin, ymin, xmax, ymax, conf = int(box['xmin'][i]), int(box['ymin'][i]), int(
+                box['xmax'][i]), int(box['ymax'][i]), box['confidence'][i]
+            bbox_list.append([xmin, ymin, xmax, ymax, conf])
 
-        if len(bbox_list)>0:
+        if len(bbox_list) > 0:
             # for bbox in bbox_list:
             # Only taking One bbox
-            bbox = bbox_list[0]
-            frame_roi = frame[bbox[1]:bbox[3], bbox[0]:bbox[2]]
-            # Resize the Frame to fixed height and width.
-            resized_frame = cv2.resize(frame_roi, (IMAGE_SIZE, IMAGE_SIZE))
+            for bbox in bbox_list:
+                if bbox[4] > yolov7_conf:
+                    bbox1 = bbox_list[0]
 
-            # Normalize the resized frame by dividing it with 255 so that each pixel value then lies between 0 and 1
-            normalized_frame = resized_frame / 255
+                    frame_roi = frame[bbox1[1]:bbox1[3], bbox1[0]:bbox1[2]]
+                    # Resize the Frame to fixed height and width.
+                    resized_frame = cv2.resize(
+                        frame_roi, (IMAGE_SIZE, IMAGE_SIZE))
 
-            # Append the normalized frame into the frames list
-            frames_list.append(normalized_frame)
+                    # Normalize the resized frame by dividing it with 255 so that each pixel value then lies between 0 and 1
+                    normalized_frame = resized_frame / 255
+
+                    # Append the normalized frame into the frames list
+                    frames_list.append(normalized_frame)
+                    break
 
     # Release the VideoCapture object.
     video_reader.release()
@@ -70,7 +76,7 @@ def frames_extraction(video_path, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model):
     return frames_list
 
 
-def create_dataset(CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model):
+def create_dataset(CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model, yolov7_conf):
     '''
     This function will extract the data of the selected classes and create the required dataset.
     Returns:
@@ -101,14 +107,16 @@ def create_dataset(CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE, yolov
 
             # Extract the frames of the video file.
             frames = frames_extraction(
-                video_file_path, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model)
+                video_file_path, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model, yolov7_conf)
 
             # Check if the extracted frames are equal to the SEQUENCE_LENGTH specified above.
             # So ignore the vides having frames less than the SEQUENCE_LENGTH.
 
             if len(frames) < SEQUENCE_LENGTH:
-                print(f'[INFO] Length of Frame Sequence in your Data is: {len(frames)} Less than given Sequence Lenght: {SEQUENCE_LENGTH}')
-                print('[INFO] Change the Data or Reduce Sequence Lenght (NOT Recommended)')
+                print(
+                    f'[INFO] Length of Frame Sequence in your Data is: {len(frames)} Less than given Sequence Lenght: {SEQUENCE_LENGTH}')
+                print(
+                    '[INFO] Change the Data or Reduce Sequence Lenght (NOT Recommended)')
                 break
 
             if len(frames) == SEQUENCE_LENGTH:
