@@ -36,6 +36,7 @@ def frames_extraction(video_path, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model):
 
         # Check if Video frame is not successfully read then break the loop
         if not success:
+            print('[INFO] Video Reading Failed or Video Ended..')
             break
         
         bbox_list = []
@@ -104,6 +105,12 @@ def create_dataset(CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE, yolov
 
             # Check if the extracted frames are equal to the SEQUENCE_LENGTH specified above.
             # So ignore the vides having frames less than the SEQUENCE_LENGTH.
+
+            if len(frames) < SEQUENCE_LENGTH:
+                print(f'[INFO] Length of Frame Sequence in your Data is: {len(frames)} Less than given Sequence Lenght: {SEQUENCE_LENGTH}')
+                print('[INFO] Change the Data or Reduce Sequence Lenght (NOT Recommended)')
+                break
+
             if len(frames) == SEQUENCE_LENGTH:
 
                 # Append the data to their repective lists.
