@@ -24,8 +24,10 @@ ap.add_argument("-c", "--conf", type=float, required=True,
                 help="Prediction confidence (0<conf<1)")
 ap.add_argument("--save", action='store_true',
                 help="Save video")
-ap.add_argument("-d", "--detect-model", type=str,  required=True,
+ap.add_argument("-d", "--detect_model", type=str,  required=True,
                 help="path to YOLOv7 model")
+ap.add_argument("-dc", "--yolov7_conf", type=float, default=0.6,
+                help="YOLOv7 detection model confidenece (0<conf<1)")
 
 args = vars(ap.parse_args())
 DATASET_DIR = args["dataset"]
@@ -35,7 +37,8 @@ path_to_model = args["model"]
 video_path = args["source"]
 thresh = args['conf']
 save = args['save']
-yolov7_model_path = args["detect-model"]
+yolov7_model_path = args["detect_model"]
+yolov7_conf = args["yolov7_conf"]
 
 CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
 
@@ -45,8 +48,6 @@ saved_model = load_model(path_to_model)
 # YOLOv7 Model
 yolov7_model = custom(path_or_model=yolov7_model_path)
 
-# url_link = 'https://www.youtube.com/watch?v=8u0qjmHIOcE'
-# video_path = 'test.mp4'
 # Web-cam
 if video_path.isnumeric():
     video_path = int(video_path)
@@ -58,9 +59,9 @@ original_video_height = int(video_reader.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 # Write Video
 if save:
-    out_vid = cv2.VideoWriter('output.avi', 
-                         cv2.VideoWriter_fourcc(*'MJPG'),
-                         10, (original_video_width, original_video_height))
+    out_vid = cv2.VideoWriter('output.avi',
+                              cv2.VideoWriter_fourcc(*'MJPG'),
+                              10, (original_video_width, original_video_height))
 
 # Declare a queue to store video frames.
 frames_queue = deque(maxlen=SEQUENCE_LENGTH)
@@ -70,7 +71,7 @@ while video_reader.isOpened():
 
     if not success:
         break
-    
+
     bbox_list = []
     # Action - ROI
     results = yolov7_model(frame)
@@ -78,54 +79,49 @@ while video_reader.isOpened():
     box = results.pandas().xyxy[0]
 
     for i in box.index:
-        xmin, ymin, xmax, ymax = int(box['xmin'][i]), int(box['ymin'][i]), int(box['xmax'][i]), int(box['ymax'][i])
-        bbox_list.append([xmin, ymin, xmax, ymax])
+        xmin, ymin, xmax, ymax, conf = int(box['xmin'][i]), int(
+            box['ymin'][i]), int(box['xmax'][i]), int(box['ymax'][i])
+        bbox_list.append([xmin, ymin, xmax, ymax, conf])
 
-    if len(bbox_list)>0:
+    if len(bbox_list) > 0:
         for bbox in bbox_list:
-            frame_roi = frame[bbox[1]:bbox[3], bbox[0]:bbox[2]]
+            if bbox[4] > yolov7_conf:
+                frame_roi = frame[bbox[1]:bbox[3], bbox[0]:bbox[2]]
 
-            # Resize the Frame to fixed Dimensions.
-            resized_frame = cv2.resize(frame_roi, (IMAGE_SIZE, IMAGE_SIZE))
+                # Resize the Frame to fixed Dimensions.
+                resized_frame = cv2.resize(frame_roi, (IMAGE_SIZE, IMAGE_SIZE))
 
-            # Normalize the resized frame by dividing it with 255 so that each pixel value then lies between 0 and 1.
-            normalized_frame = resized_frame / 255
+                # Normalize the resized frame by dividing it with 255 so that each pixel value then lies between 0 and 1.
+                normalized_frame = resized_frame / 255
 
-            # Appending the pre-processed frame into the frames list.
-            frames_queue.append(normalized_frame)
+                # Appending the pre-processed frame into the frames list.
+                frames_queue.append(normalized_frame)
 
-            # Check if the number of frames in the queue are equal to the fixed sequence length.
-            if len(frames_queue) == SEQUENCE_LENGTH:
+                # Check if the number of frames in the queue are equal to the fixed sequence length.
+                if len(frames_queue) == SEQUENCE_LENGTH:
 
-                # Pass the normalized frames to the model and get the predicted probabilities.
-                predicted_labels_probabilities = saved_model.predict(
-                    np.expand_dims(frames_queue, axis=0))[0]
+                    # Pass the normalized frames to the model and get the predicted probabilities.
+                    predicted_labels_probabilities = saved_model.predict(
+                        np.expand_dims(frames_queue, axis=0))[0]
 
-                # Get the index of class with highest probability.
-                predicted_label = np.argmax(predicted_labels_probabilities)
-                
-                if max(predicted_labels_probabilities) > thresh:
+                    # Get the index of class with highest probability.
+                    predicted_label = np.argmax(predicted_labels_probabilities)
 
-                    # Get the class name using the retrieved index.
-                    predicted_class_name = CLASSES_LIST[predicted_label]
+                    if max(predicted_labels_probabilities) > thresh:
 
-                    # Write predicted class name on top of the frame.
-                    # cv2.putText(frame, predicted_class_name, (bbox[0], bbox[1]),
-                    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                    
-                    plot_one_box(
-                        bbox, frame, label=predicted_class_name,
-                        color=[0,255,0], line_thickness=2
-                    )
+                        # Get the class name using the retrieved index.
+                        predicted_class_name = CLASSES_LIST[predicted_label]
 
-                else:
-                    # cv2.putText(frame, 'Action NOT Detetced', (bbox[0], bbox[1]),
-                    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                        plot_one_box(
+                            bbox, frame, label=predicted_class_name,
+                            color=[0, 255, 0], line_thickness=2
+                        )
 
-                    plot_one_box(
-                        bbox, frame, label='Action NOT Detetced',
-                        color=[0,0,255], line_thickness=2
-                    )
+                    else:
+                        plot_one_box(
+                            bbox, frame, label='Action NOT Detetced',
+                            color=[0, 0, 255], line_thickness=2
+                        )
 
     # Write Video
     if save:
