@@ -1,5 +1,14 @@
 # CustomActivityRecognition-TensorFlow-CNN-LSTM
 Custom Activity Recognition using TensorFlow (CNN + LSTM)
+```diff
+- If You need create Model or Project, only focusing Action Area (ROI)
++ Go to branch "detect" 
+! Follow the Instruction
+```
+**Example**:
+
+https://user-images.githubusercontent.com/88816150/189055326-a02ade8f-0129-4e1a-886c-05cd180bec4f.mp4
+
 ## Custom Activity Recognition model
 
 ### Clone this Repository
