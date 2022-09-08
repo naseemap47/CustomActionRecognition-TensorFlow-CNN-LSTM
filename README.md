@@ -1,7 +1,11 @@
 # CustomActivityRecognition-TensorFlow-CNN-LSTM
 Custom Activity Recognition using TensorFlow (CNN + LSTM) <br>
 With help of Object detetction model (YOLOv7), We focusing on **Action Area (ROI)** NOT entire Frame.<br>
-It can help to **increase Action Model Accuracy** and to **identify different types of Action in a single frame**.
+It can help to **increase Action Model Accuracy** and to **identify different types of Action in a single frame**.<br>
+
+**Example**:
+
+https://user-images.githubusercontent.com/88816150/189055326-a02ade8f-0129-4e1a-886c-05cd180bec4f.mp4
 
 ## Custom Activity Recognition model with Object Detection (YOLOv7)
 ### Clone this Repository
