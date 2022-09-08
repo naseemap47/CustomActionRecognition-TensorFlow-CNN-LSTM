@@ -42,11 +42,15 @@ It will replace with your Model <br>
 
 ### 1.convLSTM
 ```
-python3 train.py --dataset data/ --seq_len 20 --size 64 --model convLSTM --epochs 50 --batch_size 4
+python3 train.py --dataset data/ --seq_len 20 \
+                 --size 64 --model convLSTM \
+                 --epochs 50 --batch_size 4
 ```
 ### 2.LRCN
 ```
-python3 train.py --dataset data/ --seq_len 20 --size 64 --model LRCN --epochs 70 --batch_size 4
+python3 train.py --dataset data/ --seq_len 20 \
+                 --size 64 --model LRCN \
+                 --epochs 70 --batch_size 4
 ```
 **The Output model, history plot and Model str plot will be Saved in corresponding its Model Dir**
 ### :warning: Training on Colab [Error]
@@ -65,16 +69,26 @@ python3 train.py --dataset data/ --seq_len 20 --size 64 --model LRCN --epochs 70
 `--source`: path to test video
 - Web-cam: `--source 0`
 ```
-python3 inference.py --dataset data/ --seq_len 20 --size 64 --model LRCN_model.h5 --conf 0.75 --source data/test/video.mp4
+python3 inference.py --dataset data/ --seq_len 20 \
+                     --size 64 --model LRCN_model.h5 \
+                     --conf 0.75 --source data/test/video.mp4
 
 # to save output video
-python3 inference.py --dataset data/ --seq_len 20 --size 64 --model LRCN_model.h5 --conf 0.75 --source data/test/video.mp4 --save
+python3 inference.py --dataset data/ --seq_len 20 \
+                     --size 64 --model LRCN_model.h5 \
+                     --conf 0.75 --source data/test/video.mp4 \
+                     --save
 ```
 ```
 # web-cam
-python3 inference.py --dataset data/ --seq_len 20 --size 64 --model LRCN_model.h5 --conf 0.75 --source 0
+python3 inference.py --dataset data/ --seq_len 20 \
+                     --size 64 --model LRCN_model.h5 \
+                     --conf 0.75 --source 0
 
 # to save output video
-python3 inference.py --dataset data/ --seq_len 20 --size 64 --model LRCN_model.h5 --conf 0.75 --source 0 --save
+python3 inference.py --dataset data/ --seq_len 20 \
+                     --size 64 --model LRCN_model.h5 \
+                     --conf 0.75 --source 0 \
+                     --save
 ```
 **To Exit Window - Press Q-key**
