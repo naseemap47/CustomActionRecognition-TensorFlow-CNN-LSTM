@@ -1,11 +1,14 @@
 # CustomActivityRecognition-TensorFlow-CNN-LSTM
-Custom Activity Recognition using TensorFlow (CNN + LSTM)
-## Custom Activity Recognition model
+Custom Activity Recognition using TensorFlow (CNN + LSTM) <br>
+With help of Object detetction model (YOLOv7), We focusing on **Action Area (ROI)** NOT entire Frame.<br>
+It can help to **increase Action Model Accuracy** and to **identify different types of Action in a single frame**.
 
+## Custom Activity Recognition model with Object Detection (YOLOv7)
 ### Clone this Repository
 ```
 git clone https://github.com/naseemap47/CustomActivityRecognition-TensorFlow-CNN-LSTM.git
 cd CustomActivityRecognition-TensorFlow-CNN-LSTM
+git checkout detect
 ```
 ### Install dependency
 ```
@@ -38,15 +41,23 @@ It will replace with your Model <br>
   - **LRCN**: `LRCN` <br>
 
 `--epochs`: Number of epochs for model Training <br>
-`--batch_size`: Size of Batch on Training the Model
+`--batch_size`: Size of Batch on Training the Model <br>
+`--yolov7_model`: Path to YOLOv7 detection Model <br>
+`--yolov7_conf`: YOLOv7 detection model confidenece (0<conf<1)
 
-### 1.convLSTM
+### 1. convLSTM
 ```
-python3 train.py --dataset data/ --seq_len 20 --size 64 --model convLSTM --epochs 50 --batch_size 4
+python3 train.py --dataset data/ --seq_len 20 \
+                 --size 64 --model convLSTM \
+                 --epochs 50 --batch_size 4 \
+                 --yolov7_model best.pt --yolov7_conf 0.6
 ```
-### 2.LRCN
+### 2. LRCN
 ```
-python3 train.py --dataset data/ --seq_len 20 --size 64 --model LRCN --epochs 70 --batch_size 4
+python3 train.py --dataset data/ --seq_len 20 \
+                 --size 64 --model LRCN \
+                 --epochs 70 --batch_size 4 \
+                 --yolov7_model best.pt --yolov7_conf 0.6
 ```
 **The Output model, history plot and Model str plot will be Saved in corresponding its Model Dir**
 ### :warning: Training on Colab [Error]
@@ -60,13 +71,38 @@ python3 train.py --dataset data/ --seq_len 20 --size 64 --model LRCN --epochs 70
 `--seq_len`: The number of frames of a video that will be fed to the model as one sequence <br>
 `--size`: The height and width to which each video frame will be resized in our dataset <br>
 `--model`: path to trained custom model <br>
-`--conf`: Model Prediction Confidence <br>
+`--act_conf`: Action Model Prediction Confidence (0<conf<1) <br>
 `--source`: path to test video
-- Web-cam: `--source 0`
-```
-python3 inference.py --dataset data/ --seq_len 20 --size 64 --model LRCN_model.h5 --conf 0.75 --source data/test/video.mp4
+- Web-cam: `--source 0` <br>
 
+`--save`: To save output video in "output.avi" <br>
+`--detect_model`: Path to YOLOv7 Model <br>
+`--yolov7_conf`: YOLOv7 detection Model conf (0<conf<1)
+```
+python3 inference.py --dataset data/ --seq_len 20 \
+                     --size 64 --model LRCN_model.h5 \
+                     --act_conf 0.75 --source data/test/video.mp4 \
+                     --detect_model best.pt --yolov7_conf 0.6
+
+# if need to save output
+python3 inference.py --dataset data/ --seq_len 20 \
+                     --size 64 --model LRCN_model.h5 \
+                     --act_conf 0.75 --source data/test/video.mp4 \
+                     --detect_model best.pt --yolov7_conf 0.6 \
+                     --save
+```
+```
 # web-cam
-python3 inference.py --dataset data/ --seq_len 20 --size 64 --model LRCN_model.h5 --conf 0.75 --source 0
+python3 inference.py --dataset data/ --seq_len 20 \
+                     --size 64 --model LRCN_model.h5 \
+                     --act_conf 0.75 --source 0 \
+                     --detect_model best.pt --yolov7_conf 0.6
+
+# if need to save output
+python3 inference.py --dataset data/ --seq_len 20 \
+                     --size 64 --model LRCN_model.h5 \
+                     --act_conf 0.75 --source 0 \
+                     --detect_model best.pt --yolov7_conf 0.6 \
+                     --save
 ```
 **To Exit Window - Press Q-key**
