@@ -80,7 +80,7 @@ while video_reader.isOpened():
 
     for i in box.index:
         xmin, ymin, xmax, ymax, conf = int(box['xmin'][i]), int(
-            box['ymin'][i]), int(box['xmax'][i]), int(box['ymax'][i])
+            box['ymin'][i]), int(box['xmax'][i]), int(box['ymax'][i]), box['confidence'][i]
         bbox_list.append([xmin, ymin, xmax, ymax, conf])
 
     if len(bbox_list) > 0:
