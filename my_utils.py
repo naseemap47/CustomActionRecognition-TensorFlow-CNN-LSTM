@@ -114,9 +114,11 @@ def create_dataset(CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE, yolov
 
             if len(frames) < SEQUENCE_LENGTH:
                 print(
-                    f'[INFO] Length of Frame Sequence in your Data is: {len(frames)} Less than given Sequence Lenght: {SEQUENCE_LENGTH}')
+                    f'[INFO] Length of Frame Sequence in your Data is: {len(frames)} Less than given Sequence Lenght: {SEQUENCE_LENGTH}\n')
                 print(
-                    '[INFO] Change the Data or Reduce Sequence Lenght (NOT Recommended)')
+                    '[INFO] Change the Data or Reduce Sequence Lenght (NOT Recommended)\nOtherwise')
+                print(
+                    f'[INFO] Detection Model NOT detetcting Action ROI, Reduce Min Object Detetction Confidence: {yolov7_conf}')
                 break
 
             if len(frames) == SEQUENCE_LENGTH:
