@@ -20,7 +20,7 @@ ap.add_argument("-m", "--model", type=str,  required=True,
                 help="path to model.h5")
 ap.add_argument("-v", "--source", type=str, required=True,
                 help="path to video or web-cam")
-ap.add_argument("-c", "--conf", type=float, required=True,
+ap.add_argument("-c", "--act_conf", type=float, required=True,
                 help="Prediction confidence (0<conf<1)")
 ap.add_argument("--save", action='store_true',
                 help="Save video")
@@ -35,7 +35,7 @@ SEQUENCE_LENGTH = args["seq_len"]
 IMAGE_SIZE = args["size"]
 path_to_model = args["model"]
 video_path = args["source"]
-thresh = args['conf']
+thresh = args['act_conf']
 save = args['save']
 yolov7_model_path = args["detect_model"]
 yolov7_conf = args["yolov7_conf"]
