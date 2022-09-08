@@ -6,13 +6,14 @@ import glob
 import matplotlib.pyplot as plt
 import argparse
 
+from utils.hubconf import custom
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.utils import to_categorical
 from keras.callbacks import EarlyStopping
 from tensorflow.keras.utils import plot_model
 
-from utils import create_dataset
-from models import convlstm_model, LRCN_model
+from my_utils import create_dataset
+from actModels import convlstm_model, LRCN_model
 
 seed_constant = 27
 np.random.seed(seed_constant)
@@ -35,6 +36,10 @@ ap.add_argument("-e", "--epochs", type=int, default=70,
                 help="number of epochs")
 ap.add_argument("-b", "--batch_size", type=int, default=4,
                 help="number of batch_size")
+ap.add_argument("-d", "--yolov7_model", type=str, required=True,
+                help="path to YOLOv7 detection model")
+ap.add_argument("-dc", "--yolov7_conf", type=float, default=0.6,
+                help="YOLOv7 detection model confidenece (0<conf<1)")
 
 args = vars(ap.parse_args())
 DATASET_DIR = args["dataset"]
@@ -43,13 +48,18 @@ IMAGE_SIZE = args["size"]
 model_type = args["model"]
 epochs = args["epochs"]
 batch_size = args["batch_size"]
+yolov7_model_path = args["yolov7_model"]
+yolov7_conf = args["yolov7_conf"]
+
+# YOLOv7 Model
+yolov7_model = custom(path_or_model=yolov7_model_path)
 
 # Specify the list containing the names of the classes used for training. Feel free to choose any set of classes.
 CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
 
 # Create the dataset.
 features, labels, video_files_paths = create_dataset(
-    CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE)
+    CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model, yolov7_conf)
 
 # Using Keras's to_categorical method to convert labels into one-hot-encoded vectors
 one_hot_encoded_labels = to_categorical(labels)
