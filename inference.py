@@ -122,6 +122,8 @@ while video_reader.isOpened():
                             bbox, frame, label='Action NOT Detetced',
                             color=[0, 0, 255], line_thickness=2
                         )
+            else:
+                print(f'[INFO] Object detection confidence: {bbox[4]} is less than given Confidence: {yolov7_conf}')
 
     # Write Video
     if save:
