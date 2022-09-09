@@ -1,5 +1,5 @@
-# CustomActivityRecognition-TensorFlow-CNN-LSTM
-Custom Activity Recognition using TensorFlow (CNN + LSTM)
+# CustomActionRecognition-TensorFlow-CNN-LSTM
+Custom Action Recognition using TensorFlow (CNN + LSTM)
 ```diff
 - If You need create Model or Project, only focusing Action Area (ROI)
 + Go to branch "detect" 
@@ -13,8 +13,8 @@ https://user-images.githubusercontent.com/88816150/189055326-a02ade8f-0129-4e1a-
 
 ### Clone this Repository
 ```
-git clone https://github.com/naseemap47/CustomActivityRecognition-TensorFlow-CNN-LSTM.git
-cd CustomActivityRecognition-TensorFlow-CNN-LSTM
+git clone https://github.com/naseemap47/CustomActionRecognition-TensorFlow-CNN-LSTM.git
+cd CustomActionRecognition-TensorFlow-CNN-LSTM
 ```
 ### Install dependency
 ```
@@ -23,7 +23,7 @@ pip3 install -r requirement.txt
 ```
 xargs sudo apt-get install <packages.txt
 ```
-### Take Custom Activity Recognition Data
+### Take Custom Action Recognition Data
 Example: **UCF50 Dataset** <br>
 **Downlaod the UCF50 Dataset:**
 ```
