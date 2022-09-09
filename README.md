@@ -1,5 +1,5 @@
-# CustomActivityRecognition-TensorFlow-CNN-LSTM
-Custom Activity Recognition using TensorFlow (CNN + LSTM) <br>
+# CustomActionRecognition-TensorFlow-CNN-LSTM
+Custom Action Recognition using TensorFlow (CNN + LSTM) <br>
 With help of Object detetction model (YOLOv7), We focusing on **Action Area (ROI)** NOT entire Frame.<br>
 It can help to **increase Action Model Accuracy** and to **identify different types of Action in a single frame**.<br>
 
@@ -7,11 +7,11 @@ It can help to **increase Action Model Accuracy** and to **identify different ty
 
 https://user-images.githubusercontent.com/88816150/189055326-a02ade8f-0129-4e1a-886c-05cd180bec4f.mp4
 
-## Custom Activity Recognition model with Object Detection (YOLOv7)
+## Custom Action Recognition model with Object Detection (YOLOv7)
 ### Clone this Repository
 ```
-git clone https://github.com/naseemap47/CustomActivityRecognition-TensorFlow-CNN-LSTM.git
-cd CustomActivityRecognition-TensorFlow-CNN-LSTM
+git clone https://github.com/naseemap47/CustomActionRecognition-TensorFlow-CNN-LSTM.git
+cd CustomActionRecognition-TensorFlow-CNN-LSTM
 git checkout detect
 ```
 ### Install dependency
@@ -21,7 +21,7 @@ pip3 install -r requirement.txt
 ```
 xargs sudo apt-get install <packages.txt
 ```
-### Take Custom Activity Recognition Data
+### Take Custom Action Recognition Data
 Example: **UCF50 Dataset** <br>
 **Downlaod the UCF50 Dataset:**
 ```
