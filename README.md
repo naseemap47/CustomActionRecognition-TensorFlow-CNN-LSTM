@@ -1,16 +1,23 @@
 # CustomActionRecognition-TensorFlow-CNN-LSTM
-Custom Action Recognition using TensorFlow (CNN + LSTM)
+Custom Action Recognition using TensorFlow (CNN + LSTM), I create my own Model to predict my custom Action Classes.<br>
+Here is my **Sample Output**:<br>
+Its predicting **Horse Race** and **Rope Climbing** Classes. (you can see the prediction on **Top Left Corner** (in color ***Green***))
+
+https://user-images.githubusercontent.com/88816150/189287071-f4ec071b-1f9f-492c-934c-f587a50dbdc4.mp4
+
+
+## But If You need create Model or Project, only focusing Action Area (ROI)
 ```diff
-- If You need create Model or Project, only focusing Action Area (ROI)
 + Go to branch "detect" 
+git checkout detect
+
 ! Follow the Instruction
 ```
-**Example**:
+**Output Example**:
 
 https://user-images.githubusercontent.com/88816150/189055326-a02ade8f-0129-4e1a-886c-05cd180bec4f.mp4
 
-## Custom Activity Recognition model
-
+# Custom Action Recognition Model
 ### Clone this Repository
 ```
 git clone https://github.com/naseemap47/CustomActionRecognition-TensorFlow-CNN-LSTM.git
@@ -24,7 +31,7 @@ pip3 install -r requirement.txt
 xargs sudo apt-get install <packages.txt
 ```
 ### Take Custom Action Recognition Data
-Example: **UCF50 Dataset** <br>
+Example: **UCF50 Dataset** (Demo)<br>
 **Downlaod the UCF50 Dataset:**
 ```
 wget --no-check-certificate https://www.crcv.ucf.edu/data/UCF50.rar
