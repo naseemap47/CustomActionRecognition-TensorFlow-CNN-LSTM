@@ -81,7 +81,7 @@ python3 train.py --dataset data/ --seq_len 20 \
 `--size`: The height and width to which each video frame will be resized in our dataset <br>
 `--model`: path to trained custom model <br>
 `--conf`: Model Prediction Confidence <br>
-`--save`: Save output video ("output.mp4")
+`--save`: Save output video ("output.mp4") <br>
 `--source`: path to test video
 - Web-cam: `--source 0`
 ```
