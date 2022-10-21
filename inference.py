@@ -47,12 +47,13 @@ video_reader = cv2.VideoCapture(video_path)
 # Get the width and height of the video.
 original_video_width = int(video_reader.get(cv2.CAP_PROP_FRAME_WIDTH))
 original_video_height = int(video_reader.get(cv2.CAP_PROP_FRAME_HEIGHT))
+fps = video_reader.get(cv2.CAP_PROP_FPS)
 
 # Write Video
 if save:
-    out_vid = cv2.VideoWriter('output.avi', 
-                         cv2.VideoWriter_fourcc(*'MJPG'),
-                         10, (original_video_width, original_video_height))
+    out_vid = cv2.VideoWriter('output.mp4', 
+                         cv2.VideoWriter_fourcc(*'MP4V'),
+                         fps, (original_video_width, original_video_height))
 
 # Declare a queue to store video frames.
 frames_queue = deque(maxlen=SEQUENCE_LENGTH)
