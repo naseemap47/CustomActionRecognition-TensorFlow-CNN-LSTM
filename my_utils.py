@@ -98,11 +98,13 @@ def create_dataset(CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE, yolov
 
         # Get the list of video files present in the specific class name directory.
         files_list = os.listdir(os.path.join(DATASET_DIR, class_name))
+        len_files_list = len(files_list)
 
         # Iterate through all the files present in the files list.
-        for file_name in files_list:
+        for file_name_i in tqdm(range(0, len_files_list)):
 
             # Get the complete video path.
+            file_name = files_list[file_name_i]
             video_file_path = os.path.join(DATASET_DIR, class_name, file_name)
 
             # Extract the frames of the video file.
