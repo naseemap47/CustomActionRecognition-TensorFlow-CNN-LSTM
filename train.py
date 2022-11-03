@@ -5,6 +5,7 @@ import os
 import glob
 import matplotlib.pyplot as plt
 import argparse
+import time
 
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.utils import to_categorical
@@ -44,6 +45,9 @@ model_type = args["model"]
 epochs = args["epochs"]
 batch_size = args["batch_size"]
 
+# Data Extraction Start
+s_time = time.time()
+
 # Specify the list containing the names of the classes used for training. Feel free to choose any set of classes.
 CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
 
@@ -57,6 +61,10 @@ one_hot_encoded_labels = to_categorical(labels)
 # Split the Data into Train ( 80% ) and Test Set ( 20% ).
 features_train, features_test, labels_train, labels_test = train_test_split(
     features, one_hot_encoded_labels, test_size=0.2, shuffle=True, random_state=seed_constant)
+
+# Data Extraction End
+de_time = time.time()
+print(f'[INFO] Data Extraction Completed in {((de_time-s_time)/60):.2} Minutes')
 
 if model_type == 'convLSTM':
     print("[INFO] Selected convLSTM Model")
@@ -103,6 +111,10 @@ history = model.fit(x=features_train, y=labels_train, epochs=epochs, batch_size=
 
 print(f'[INFO] Successfully Completed {model_type} Model Training')
 
+# Training End
+te_time = time.time()
+print(f'[INFO] Model Training Completed in {((te_time-de_time)/60):.2} Minutes')
+
 # Evaluate the trained model.
 model_evaluation_history = model.evaluate(features_test, labels_test)
 
@@ -148,3 +160,7 @@ if plot_png:
 else:
     plt.savefig(path_to_metrics, bbox_inches='tight')
 print(f'[INFO] Successfully Saved {metrics_png_name}')
+
+# Total Time
+e_time = time.time()
+print(f'[INFO] Completed All process in {((e_time-s_time)/60):.2} Minutes')
