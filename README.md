@@ -18,6 +18,13 @@ git checkout detect
 https://user-images.githubusercontent.com/88816150/189055326-a02ade8f-0129-4e1a-886c-05cd180bec4f.mp4
 
 # Custom Action Recognition Model
+## 🚀 New Update
+- (**03/11/2022**) **MLFlow** to Model training. So that we can Manage the ML lifecycle
+  - Experimentation
+  - Reproducibility
+  - Deployment
+  - Central Model Registry
+
 ### Clone this Repository
 ```
 git clone https://github.com/naseemap47/CustomActionRecognition-TensorFlow-CNN-LSTM.git
