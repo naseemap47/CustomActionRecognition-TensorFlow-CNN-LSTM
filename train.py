@@ -8,12 +8,10 @@ import argparse
 import time
 
 from sklearn.model_selection import train_test_split
-from tensorflow.keras.utils import to_categorical
 from keras.callbacks import EarlyStopping
-from tensorflow.keras.utils import plot_model
-
 from utils import create_dataset
 from models import convlstm_model, LRCN_model
+
 
 seed_constant = 27
 np.random.seed(seed_constant)
@@ -56,7 +54,7 @@ features, labels, video_files_paths = create_dataset(
     CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE)
 
 # Using Keras's to_categorical method to convert labels into one-hot-encoded vectors
-one_hot_encoded_labels = to_categorical(labels)
+one_hot_encoded_labels = tf.keras.utils.to_categorical(labels)
 
 # Split the Data into Train ( 80% ) and Test Set ( 20% ).
 features_train, features_test, labels_train, labels_test = train_test_split(
@@ -91,7 +89,7 @@ else:
 png_name = f'{model_type}_model_str.png'
 path_to_model_str = os.path.join(path_to_model_dir, png_name)
 # Plot the structure of the contructed model.
-plot_model(model, to_file=path_to_model_str,
+tf.keras.utils.plot_model(model, to_file=path_to_model_str,
            show_shapes=True, show_layer_names=True)
 print(f'[INFO] Successfully Created {png_name}')
 
