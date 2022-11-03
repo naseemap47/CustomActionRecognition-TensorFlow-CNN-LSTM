@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import os
+from tqdm import tqdm
 
 
 def frames_extraction(video_path, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model, yolov7_conf):
