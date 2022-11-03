@@ -6,6 +6,7 @@ import glob
 import matplotlib.pyplot as plt
 import argparse
 import time
+import mlflow
 
 from utils.hubconf import custom
 from sklearn.model_selection import train_test_split
@@ -63,12 +64,19 @@ CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
 features, labels, video_files_paths = create_dataset(
     CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model, yolov7_conf)
 
+# Total Data Size
+total_data = len(labels)
+
 # Using Keras's to_categorical method to convert labels into one-hot-encoded vectors
 one_hot_encoded_labels = tf.keras.utils.to_categorical(labels)
 
 # Split the Data into Train ( 80% ) and Test Set ( 20% ).
 features_train, features_test, labels_train, labels_test = train_test_split(
     features, one_hot_encoded_labels, test_size=0.2, shuffle=True, random_state=seed_constant)
+
+# Train and Test Data Size
+train_size = len(labels_train)
+val_size = len(labels_test)
 
 # Data Extraction End
 de_time = time.time()
@@ -113,61 +121,82 @@ model.compile(loss='categorical_crossentropy',
 
 print(f'[INFO] {model_type} Model Training Started...')
 
-# Start training the model.
-history = model.fit(x=features_train, y=labels_train, epochs=epochs, batch_size=batch_size,
-                    shuffle=True, validation_split=0.2, callbacks=[early_stopping_callback])
+# MLFlow
+mlflow.set_experiment('Action Recognition')
+with mlflow.start_run(run_name=f'{model_type}_model'):
+    mlflow.keras.autolog()
 
-print(f'[INFO] Successfully Completed {model_type} Model Training')
+    # Start training the model.
+    history = model.fit(x=features_train, y=labels_train, epochs=epochs, batch_size=batch_size,
+                        shuffle=True, validation_split=0.2, callbacks=[early_stopping_callback])
 
-# Training End
-te_time = time.time()
-print(f'[INFO] Model Training Completed in {((te_time-de_time)/60):.2} Minutes')
+    print(f'[INFO] Successfully Completed {model_type} Model Training')
 
-# Evaluate the trained model.
-model_evaluation_history = model.evaluate(features_test, labels_test)
+    # Training End
+    te_time = time.time()
+    print(f'[INFO] Model Training Completed in {((te_time-de_time)/60):.2} Minutes')
 
-# Get the loss and accuracy from model_evaluation_history.
-model_evaluation_loss, model_evaluation_accuracy = model_evaluation_history
+    # Evaluate the trained model.
+    model_evaluation_history = model.evaluate(features_test, labels_test)
 
-# Define a useful name for our model to make it easy for us while navigating through multiple saved models.
-model_file_name = f'{model_type}_model_loss_{model_evaluation_loss:.3}_acc_{model_evaluation_accuracy:.3}.h5'
+    # Get the loss and accuracy from model_evaluation_history.
+    model_evaluation_loss, model_evaluation_accuracy = model_evaluation_history
 
-# Save your Model.
-model.save(os.path.join(path_to_model_dir, model_file_name))
-print(f'[INFO] Model {model_file_name} saved Successfully..')
+    # Define a useful name for our model to make it easy for us while navigating through multiple saved models.
+    model_file_name = f'{model_type}_model_loss_{model_evaluation_loss:.3}_acc_{model_evaluation_accuracy:.3}.h5'
 
+    # Save your Model
+    path_to_save_model = os.path.join(path_to_model_dir, model_file_name)
+    model.save(path_to_save_model)
+    print(f'[INFO] Model {model_file_name} saved Successfully..')
 
-# Plot History
-metric_loss = history.history['loss']
-metric_val_loss = history.history['val_loss']
-metric_accuracy = history.history['accuracy']
-metric_val_accuracy = history.history['val_accuracy']
+    # Model Size
+    mb_size = os.path.getsize(f'{path_to_save_model}')
+    mb_size = round(mb_size / 1e+6, 2)
+    print(f'[INFO] {model_type} Model Size: {mb_size} MB')
 
-# Construct a range object which will be used as x-axis (horizontal plane) of the graph.
-epochs = range(len(metric_loss))
+    # Plot History
+    metric_loss = history.history['loss']
+    metric_val_loss = history.history['val_loss']
+    metric_accuracy = history.history['accuracy']
+    metric_val_accuracy = history.history['val_accuracy']
 
-# Plot the Graph.
-plt.plot(epochs, metric_loss, 'blue', label=metric_loss)
-plt.plot(epochs, metric_val_loss, 'red', label=metric_val_loss)
-plt.plot(epochs, metric_accuracy, 'magenta', label=metric_accuracy)
-plt.plot(epochs, metric_val_accuracy, 'green', label=metric_val_accuracy)
+    # Construct a range object which will be used as x-axis (horizontal plane) of the graph.
+    epochs = range(len(metric_loss))
 
-# Add title to the plot.
-plt.title(str('Model Metrics'))
+    # Plot the Graph.
+    plt.plot(epochs, metric_loss, 'blue', label=metric_loss)
+    plt.plot(epochs, metric_val_loss, 'red', label=metric_val_loss)
+    plt.plot(epochs, metric_accuracy, 'magenta', label=metric_accuracy)
+    plt.plot(epochs, metric_val_accuracy, 'green', label=metric_val_accuracy)
 
-# Add legend to the plot.
-plt.legend(['loss', 'val_loss', 'accuracy', 'val_accuracy'])
+    # Add title to the plot.
+    plt.title(str('Model Metrics'))
 
-# If the plot already exist, remove
-metrics_png_name = f'{model_type}_metrics.png'
-path_to_metrics = os.path.join(path_to_model_dir, metrics_png_name)
-plot_png = os.path.exists(path_to_metrics)
-if plot_png:
-    os.remove(path_to_metrics)
-    plt.savefig(path_to_metrics, bbox_inches='tight')
-else:
-    plt.savefig(path_to_metrics, bbox_inches='tight')
-print(f'[INFO] Successfully Saved {metrics_png_name}')
+    # Add legend to the plot.
+    plt.legend(['loss', 'val_loss', 'accuracy', 'val_accuracy'])
+
+    # If the plot already exist, remove
+    metrics_png_name = f'{model_type}_metrics.png'
+    path_to_metrics = os.path.join(path_to_model_dir, metrics_png_name)
+    plot_png = os.path.exists(path_to_metrics)
+    if plot_png:
+        os.remove(path_to_metrics)
+        plt.savefig(path_to_metrics, bbox_inches='tight')
+    else:
+        plt.savefig(path_to_metrics, bbox_inches='tight')
+    print(f'[INFO] Successfully Saved {metrics_png_name}')
+
+    # MLFlow Metrics
+    mlflow.log_metric('Input Image Size', IMAGE_SIZE)
+    mlflow.log_metric('Total Image Data', total_data)
+    mlflow.log_metric('Train Size', train_size)
+    mlflow.log_metric('Validation Size', val_size)
+    mlflow.log_artifact(f'{path_to_metrics}')
+    mlflow.log_metric('Model Size MB', mb_size)
+
+    print("[INFO] MLFlow Run: ", mlflow.active_run().info.run_uuid)
+mlflow.end_run()
 
 # Total Time
 e_time = time.time()
