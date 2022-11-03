@@ -5,15 +5,14 @@ import os
 import glob
 import matplotlib.pyplot as plt
 import argparse
+import time
 
 from utils.hubconf import custom
 from sklearn.model_selection import train_test_split
-from tensorflow.keras.utils import to_categorical
 from keras.callbacks import EarlyStopping
-from tensorflow.keras.utils import plot_model
-
 from my_utils import create_dataset
 from actModels import convlstm_model, LRCN_model
+
 
 seed_constant = 27
 np.random.seed(seed_constant)
@@ -54,6 +53,9 @@ yolov7_conf = args["yolov7_conf"]
 # YOLOv7 Model
 yolov7_model = custom(path_or_model=yolov7_model_path)
 
+# Data Extraction Start
+s_time = time.time()
+
 # Specify the list containing the names of the classes used for training. Feel free to choose any set of classes.
 CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
 
@@ -62,11 +64,15 @@ features, labels, video_files_paths = create_dataset(
     CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model, yolov7_conf)
 
 # Using Keras's to_categorical method to convert labels into one-hot-encoded vectors
-one_hot_encoded_labels = to_categorical(labels)
+one_hot_encoded_labels = tf.keras.utils.to_categorical(labels)
 
 # Split the Data into Train ( 80% ) and Test Set ( 20% ).
 features_train, features_test, labels_train, labels_test = train_test_split(
     features, one_hot_encoded_labels, test_size=0.2, shuffle=True, random_state=seed_constant)
+
+# Data Extraction End
+de_time = time.time()
+print(f'[INFO] Data Extraction Completed in {((de_time-s_time)/60):.2} Minutes')
 
 if model_type == 'convLSTM':
     print("[INFO] Selected convLSTM Model")
@@ -93,7 +99,7 @@ else:
 png_name = f'{model_type}_model_str.png'
 path_to_model_str = os.path.join(path_to_model_dir, png_name)
 # Plot the structure of the contructed model.
-plot_model(model, to_file=path_to_model_str,
+tf.keras.utils.plot_model(model, to_file=path_to_model_str,
            show_shapes=True, show_layer_names=True)
 print(f'[INFO] Successfully Created {png_name}')
 
@@ -112,6 +118,10 @@ history = model.fit(x=features_train, y=labels_train, epochs=epochs, batch_size=
                     shuffle=True, validation_split=0.2, callbacks=[early_stopping_callback])
 
 print(f'[INFO] Successfully Completed {model_type} Model Training')
+
+# Training End
+te_time = time.time()
+print(f'[INFO] Model Training Completed in {((te_time-de_time)/60):.2} Minutes')
 
 # Evaluate the trained model.
 model_evaluation_history = model.evaluate(features_test, labels_test)
@@ -139,7 +149,7 @@ epochs = range(len(metric_loss))
 # Plot the Graph.
 plt.plot(epochs, metric_loss, 'blue', label=metric_loss)
 plt.plot(epochs, metric_val_loss, 'red', label=metric_val_loss)
-plt.plot(epochs, metric_accuracy, 'blue', label=metric_accuracy)
+plt.plot(epochs, metric_accuracy, 'magenta', label=metric_accuracy)
 plt.plot(epochs, metric_val_accuracy, 'green', label=metric_val_accuracy)
 
 # Add title to the plot.
@@ -158,3 +168,7 @@ if plot_png:
 else:
     plt.savefig(path_to_metrics, bbox_inches='tight')
 print(f'[INFO] Successfully Saved {metrics_png_name}')
+
+# Total Time
+e_time = time.time()
+print(f'[INFO] Completed All process in {((e_time-s_time)/60):.2} Minutes')
