@@ -130,3 +130,6 @@ dmypy.json
 
 # Data Dir
 data/
+
+# MLFlow
+mlruns
