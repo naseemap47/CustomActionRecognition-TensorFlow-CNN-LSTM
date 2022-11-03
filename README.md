@@ -82,6 +82,24 @@ python3 train.py --dataset data/ --seq_len 20 \
 # Install latest version
 !apt install --allow-change-held-packages libcudnn8=8.4.1.50-1+cuda11.6
 ```
+
+## MLFlow UI
+**MLflow** is an open source platform for managing the end-to-end machine learning lifecycle <br>
+terminal is in the same directory that contains mlruns, and
+type the following:
+```
+mlflow ui
+
+# OR
+mlflow ui -p 1234
+```
+The command mlflow ui hosts the MLFlow UI locally on the default
+port of **5000**.<br>
+However, the options `-p 1234` tell it that you want to host it specifically on the port **1234**.<br>
+
+open a browser and type in http://localhost:1234 or
+http://127.0.0.1:1234
+
 ## Inference
 `--dataset`: path to dataset dir <br>
 `--seq_len`: The number of frames of a video that will be fed to the model as one sequence <br>
