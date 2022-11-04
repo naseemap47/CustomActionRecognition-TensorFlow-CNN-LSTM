@@ -80,7 +80,8 @@ val_size = len(labels_test)
 
 # Data Extraction End
 de_time = time.time()
-print(f'[INFO] Data Extraction Completed in {((de_time-s_time)/60):.2} Minutes')
+t1 = (de_time-s_time)/60
+print(f'[INFO] Data Extraction Completed in {round(t1, 2)} Minutes')
 
 if model_type == 'convLSTM':
     print("[INFO] Selected convLSTM Model")
@@ -134,7 +135,8 @@ with mlflow.start_run(run_name=f'{model_type}_model'):
 
     # Training End
     te_time = time.time()
-    print(f'[INFO] Model Training Completed in {((te_time-de_time)/60):.2} Minutes')
+    t2 = (te_time-de_time)/60
+    print(f'[INFO] Model Training Completed in {round(t2, 2)} Minutes')
 
     # Evaluate the trained model.
     model_evaluation_history = model.evaluate(features_test, labels_test)
@@ -200,4 +202,5 @@ mlflow.end_run()
 
 # Total Time
 e_time = time.time()
-print(f'[INFO] Completed All process in {((e_time-s_time)/60):.2} Minutes')
+t3 = (e_time-s_time)/60
+print(f'[INFO] Completed All process in {round(t3, 2)} Minutes')
