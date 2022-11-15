@@ -73,7 +73,7 @@ def create_dataset(CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE):
     for class_index, class_name in enumerate(CLASSES_LIST):
 
         # Display the name of the class whose data is being extracted.
-        print(f'Extracting Data from Class: {class_name}')
+        print(f'Extracting Data from Class: \33[92m {class_name} \33[0m')
 
         # Get the list of video files present in the specific class name directory.
         files_list = os.listdir(os.path.join(DATASET_DIR, class_name))

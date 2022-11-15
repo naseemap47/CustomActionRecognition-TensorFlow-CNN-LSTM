@@ -46,6 +46,7 @@ batch_size = args["batch_size"]
 
 # Data Extraction Start
 s_time = time.time()
+print('\33[1;37;44m [INFO] Data Extraction Started... \33[0m')
 
 # Specify the list containing the names of the classes used for training. Feel free to choose any set of classes.
 CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
@@ -69,26 +70,26 @@ val_size = len(labels_test)
 # Data Extraction End
 de_time = time.time()
 t1 = (de_time-s_time)/60
-print(f'[INFO] Data Extraction Completed in {round(t1, 2)} Minutes')
+print(f'\33[5;30;46m [INFO] Data Extraction Completed in {round(t1, 2)} Minutes \33[0m')
 
 if model_type == 'convLSTM':
-    print("[INFO] Selected convLSTM Model")
+    print("\33[5;30;43m [INFO] Selected convLSTM Model \33[0m")
     model = convlstm_model(SEQUENCE_LENGTH, IMAGE_SIZE, CLASSES_LIST)
-    print("[INFO] convLSTM Created Successfully!")
+    print("\33[1;37;42m [INFO] convLSTM Created Successfully \33[0m")
 elif model_type == 'LRCN':
-    print("[INFO] Selected LRCN Model")
+    print("\33[5;30;43m [INFO] Selected LRCN Model \33[0m")
     model = LRCN_model(SEQUENCE_LENGTH, IMAGE_SIZE, CLASSES_LIST)
-    print("[INFO] LRCN Created Successfully!")
+    print("\33[1;37;42m [INFO] LRCN Created Successfully \33[0m")
 else:
-    print('[INFO] Model NOT Choosen!!')
+    print('\33[91m [INFO] Model NOT Choosen!! \33[0m')
 
 # Model Dir
 path_to_model_dir = f'{model_type}'
 if not os.path.isdir(path_to_model_dir):
     os.makedirs(path_to_model_dir, exist_ok=True)
-    print(f'[INFO] Created {path_to_model_dir} Folder')
+    print(f'\33[92m [INFO] Created {path_to_model_dir} Folder \33[0m')
 else:
-    print(f'[INFO] {path_to_model_dir} Folder Already Exist')
+    print(f'\33[93m [INFO] {path_to_model_dir} Folder Already Exist \33[0m')
     f = glob.glob(path_to_model_dir + '/*')
     for i in f:
         os.remove(i)
@@ -98,7 +99,7 @@ path_to_model_str = os.path.join(path_to_model_dir, png_name)
 # Plot the structure of the contructed model.
 tf.keras.utils.plot_model(model, to_file=path_to_model_str,
            show_shapes=True, show_layer_names=True)
-print(f'[INFO] Successfully Created {png_name}')
+print(f'\33[92m [INFO] Successfully Created {png_name} \33[0m')
 
 # Create an Instance of Early Stopping Callback
 early_stopping_callback = EarlyStopping(
@@ -108,7 +109,7 @@ early_stopping_callback = EarlyStopping(
 model.compile(loss='categorical_crossentropy',
               optimizer='Adam', metrics=["accuracy"])
 
-print(f'[INFO] {model_type} Model Training Started...')
+print(f'\33[1;37;44m [INFO] {model_type} Model Training Started... \33[0m')
 
 # MLFlow
 mlflow.set_experiment('Action Recognition')
@@ -118,13 +119,13 @@ with mlflow.start_run(run_name=f'{model_type}_model'):
     history = model.fit(x=features_train, y=labels_train, epochs=epochs, batch_size=batch_size,
                         shuffle=True, validation_split=0.2, callbacks=[early_stopping_callback])
 
-    print(f'[INFO] Successfully Completed {model_type} Model Training')
+    print(f'\33[1;37;42m [INFO] Successfully Completed {model_type} Model Training \33[0m')
 
     # Training End
     te_time = time.time()
     t2 = (te_time-de_time)/60
-    print(f'[INFO] Model Training Completed in {round(t2, 2)} Minutes')
-
+    print(f'\33[5;30;46m [INFO] Model Training Completed in {round(t2, 2)} Minutes \33[0m')
+    
     # Evaluate the trained model.
     model_evaluation_history = model.evaluate(features_test, labels_test)
 
@@ -137,12 +138,12 @@ with mlflow.start_run(run_name=f'{model_type}_model'):
     # Save your Model
     path_to_save_model = os.path.join(path_to_model_dir, model_file_name)
     model.save(path_to_save_model)
-    print(f'[INFO] Model {model_file_name} saved Successfully..')
+    print(f'\33[1;37;42m [INFO] Model {model_file_name} saved Successfully.. \33[0m')
 
     # Model Size
     mb_size = os.path.getsize(f'{path_to_save_model}')
     mb_size = round(mb_size / 1e+6, 2)
-    print(f'[INFO] {model_type} Model Size: {mb_size} MB')
+    print(f'\33[5;30;47m [INFO] {model_type} Model Size: {mb_size} MB \33[0m')
 
     # Plot History
     metric_loss = history.history['loss']
@@ -174,7 +175,7 @@ with mlflow.start_run(run_name=f'{model_type}_model'):
         plt.savefig(path_to_metrics, bbox_inches='tight')
     else:
         plt.savefig(path_to_metrics, bbox_inches='tight')
-    print(f'[INFO] Successfully Saved {metrics_png_name}')
+    print(f'\33[1;37;42m [INFO] Successfully Saved {metrics_png_name} \33[0m')
 
     # MLFlow Metrics
     mlflow.log_metric('Input Image Size', IMAGE_SIZE)
@@ -184,10 +185,11 @@ with mlflow.start_run(run_name=f'{model_type}_model'):
     mlflow.log_artifact(f'{path_to_metrics}')
     mlflow.log_metric('Model Size MB', mb_size)
 
-    print("[INFO] MLFlow Run: ", mlflow.active_run().info.run_uuid)
+    print("\33[1;30;43m [INFO] MLFlow Run: \33[0m", mlflow.active_run().info.run_uuid)
 mlflow.end_run()
 
 # Total Time
 e_time = time.time()
 t3 = (e_time-s_time)/60
-print(f'[INFO] Completed All process in {round(t3, 2)} Minutes')
+print(f'\33[5;30;46m [INFO] Completed All process in {round(t3, 2)} Minutes \33[0m')
+
