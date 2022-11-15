@@ -8,10 +8,10 @@ import argparse
 import time
 import mlflow
 
-from sklearn.model_selection import train_test_split
 from keras.callbacks import EarlyStopping
-from utils import create_dataset
 from models import convlstm_model, LRCN_model
+from keras.preprocessing.image import ImageDataGenerator
+from utils import VideoFrameGenerator
 
 
 seed_constant = 27
@@ -44,6 +44,13 @@ model_type = args["model"]
 epochs = args["epochs"]
 batch_size = args["batch_size"]
 
+# some global params
+SIZE = (IMAGE_SIZE, IMAGE_SIZE)
+CHANNELS = 3
+
+# pattern to get videos and classes
+glob_pattern= DATASET_DIR + '/{classname}/*'
+
 # Data Extraction Start
 s_time = time.time()
 print('\33[1;37;44m [INFO] Data Extraction Started... \33[0m')
@@ -51,21 +58,37 @@ print('\33[1;37;44m [INFO] Data Extraction Started... \33[0m')
 # Specify the list containing the names of the classes used for training. Feel free to choose any set of classes.
 CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
 
-# Create the dataset.
-features, labels, video_files_paths = create_dataset(
-    CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE)
+# for data augmentation
+# preprocessor = ImageDataGenerator(
+#     rotation_range=10,
+#     width_shift_range=0.1,
+#     height_shift_range=0.1
+# )
 
-total_data = len(labels)
+# Create video frame generator
+train_gen = VideoFrameGenerator(
+    classes=CLASSES_LIST, 
+    glob_pattern=glob_pattern,
+    nb_frames=SEQUENCE_LENGTH,
+    split=.1, 
+    shuffle=True,
+    batch_size=batch_size,
+    target_shape=SIZE,
+    nb_channel=CHANNELS,
+    # transformation=preprocessor,
+    use_frame_cache=True
+)
 
-# Using Keras's to_categorical method to convert labels into one-hot-encoded vectors
-one_hot_encoded_labels = tf.keras.utils.to_categorical(labels)
+# Validation Generator
+valid_gen = train_gen.get_validation_generator()
 
-# Split the Data into Train ( 80% ) and Test Set ( 20% ).
-features_train, features_test, labels_train, labels_test = train_test_split(
-    features, one_hot_encoded_labels, test_size=0.2, shuffle=True, random_state=seed_constant)
+print(train_gen)
+print(valid_gen)
 
-train_size = len(labels_train)
-val_size = len(labels_test)
+# total_data = len(labels)
+# train_size = len(labels_train)
+# val_size = len(labels_test)
+
 
 # Data Extraction End
 de_time = time.time()
@@ -116,8 +139,10 @@ mlflow.set_experiment('Action Recognition')
 with mlflow.start_run(run_name=f'{model_type}_model'):
     mlflow.keras.autolog()
     # Start training the model.
-    history = model.fit(x=features_train, y=labels_train, epochs=epochs, batch_size=batch_size,
-                        shuffle=True, validation_split=0.2, callbacks=[early_stopping_callback])
+    history = model.fit_generator(
+        train_gen, validation_data=valid_gen, epochs=epochs,
+        shuffle=True, callbacks=[early_stopping_callback]
+    )
 
     print(f'\33[1;37;42m [INFO] Successfully Completed {model_type} Model Training \33[0m')
 
@@ -127,7 +152,7 @@ with mlflow.start_run(run_name=f'{model_type}_model'):
     print(f'\33[5;30;46m [INFO] Model Training Completed in {round(t2, 2)} Minutes \33[0m')
     
     # Evaluate the trained model.
-    model_evaluation_history = model.evaluate(features_test, labels_test)
+    model_evaluation_history = model.evaluate(valid_gen)
 
     # Get the loss and accuracy from model_evaluation_history.
     model_evaluation_loss, model_evaluation_accuracy = model_evaluation_history
@@ -179,9 +204,9 @@ with mlflow.start_run(run_name=f'{model_type}_model'):
 
     # MLFlow Metrics
     mlflow.log_metric('Input Image Size', IMAGE_SIZE)
-    mlflow.log_metric('Total Image Data', total_data)
-    mlflow.log_metric('Train Size', train_size)
-    mlflow.log_metric('Validation Size', val_size)
+    # mlflow.log_metric('Total Image Data', total_data)
+    # mlflow.log_metric('Train Size', train_size)
+    # mlflow.log_metric('Validation Size', val_size)
     mlflow.log_artifact(f'{path_to_metrics}')
     mlflow.log_metric('Model Size MB', mb_size)
 
