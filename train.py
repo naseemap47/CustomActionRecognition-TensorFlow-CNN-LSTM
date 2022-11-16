@@ -137,11 +137,14 @@ print(f'\33[1;37;44m [INFO] {model_type} Model Training Started... \33[0m')
 # MLFlow
 mlflow.set_experiment('Action Recognition')
 with mlflow.start_run(run_name=f'{model_type}_model'):
-    mlflow.keras.autolog()
+    mlflow.tensorflow.autolog()
     # Start training the model.
-    history = model.fit_generator(
-        train_gen, validation_data=valid_gen, epochs=epochs,
-        shuffle=True, callbacks=[early_stopping_callback]
+    history = model.fit(
+        train_gen,
+        validation_data=valid_gen,
+        batch_size=batch_size,
+        epochs=epochs,
+        callbacks=[early_stopping_callback]
     )
 
     print(f'\33[1;37;42m [INFO] Successfully Completed {model_type} Model Training \33[0m')
