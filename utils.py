@@ -437,10 +437,8 @@ class VideoFrameGenerator(Sequence):
         if force_no_headers and len(frames) != nbframe:
             # and if we really couldn't find the real frame counter
             # so we return None. Sorry, nothing can be done...
-            log.error("Frame count is not OK for video %s, "
-                      "%d total, %d extracted" % (
+            log.error("\n\33[1;37;41m Frame count is not OK for video %s, "
+                      "%d total, %d extracted \33[0m" % (
                         video, total_frames, len(frames)))
             return None
-
         return np.array(frames)
-
