@@ -53,7 +53,6 @@ glob_pattern= DATASET_DIR + '/{classname}/*'
 
 # Data Extraction Start
 s_time = time.time()
-print('\33[1;37;44m [INFO] Data Extraction Started... \33[0m')
 
 # Specify the list containing the names of the classes used for training. Feel free to choose any set of classes.
 CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
@@ -76,25 +75,18 @@ train_gen = VideoFrameGenerator(
     target_shape=SIZE,
     nb_channel=CHANNELS,
     # transformation=preprocessor,
-    use_frame_cache=True
+    use_frame_cache=False
 )
 
 # Validation Generator
 valid_gen = train_gen.get_validation_generator()
 
-print(train_gen)
-print(valid_gen)
+# Data Size
+train_size = int(train_gen.files_count)
+val_size = int(valid_gen.files_count)
+total_data = train_size + val_size
 
-# total_data = len(labels)
-# train_size = len(labels_train)
-# val_size = len(labels_test)
-
-
-# Data Extraction End
-de_time = time.time()
-t1 = (de_time-s_time)/60
-print(f'\33[5;30;46m [INFO] Data Extraction Completed in {round(t1, 2)} Minutes \33[0m')
-
+# Model Selection
 if model_type == 'convLSTM':
     print("\33[5;30;43m [INFO] Selected convLSTM Model \33[0m")
     model = convlstm_model(SEQUENCE_LENGTH, IMAGE_SIZE, CLASSES_LIST)
@@ -151,7 +143,7 @@ with mlflow.start_run(run_name=f'{model_type}_model'):
 
     # Training End
     te_time = time.time()
-    t2 = (te_time-de_time)/60
+    t2 = (te_time-s_time)/60
     print(f'\33[5;30;46m [INFO] Model Training Completed in {round(t2, 2)} Minutes \33[0m')
     
     # Evaluate the trained model.
@@ -207,9 +199,9 @@ with mlflow.start_run(run_name=f'{model_type}_model'):
 
     # MLFlow Metrics
     mlflow.log_metric('Input Image Size', IMAGE_SIZE)
-    # mlflow.log_metric('Total Image Data', total_data)
-    # mlflow.log_metric('Train Size', train_size)
-    # mlflow.log_metric('Validation Size', val_size)
+    mlflow.log_metric('Total Image Data', total_data)
+    mlflow.log_metric('Train Size', train_size)
+    mlflow.log_metric('Validation Size', val_size)
     mlflow.log_artifact(f'{path_to_metrics}')
     mlflow.log_metric('Model Size MB', mb_size)
 
@@ -220,4 +212,3 @@ mlflow.end_run()
 e_time = time.time()
 t3 = (e_time-s_time)/60
 print(f'\33[5;30;46m [INFO] Completed All process in {round(t3, 2)} Minutes \33[0m')
-
