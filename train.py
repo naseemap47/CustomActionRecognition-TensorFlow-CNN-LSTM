@@ -9,9 +9,8 @@ import time
 import mlflow
 
 from utils.hubconf import custom
-from sklearn.model_selection import train_test_split
 from keras.callbacks import EarlyStopping
-from my_utils import create_dataset
+from my_utils import VideoFrameGenerator
 from actModels import convlstm_model, LRCN_model
 
 
@@ -28,7 +27,7 @@ ap.add_argument("-l", "--seq_len", type=int, default=20,
                 help="length of Sequence")
 
 ap.add_argument("-s", "--size", type=int, default=64,
-                help="Specify the height and width to which each video frame will be resized in our dataset.")
+                help="size of video frame will be resized in our dataset")
 ap.add_argument("-m", "--model", type=str,  default='LRCN',
                 choices=['convLSTM', 'LRCN'],
                 help="select model type convLSTM or LRCN")
@@ -40,6 +39,8 @@ ap.add_argument("-d", "--yolov7_model", type=str, required=True,
                 help="path to YOLOv7 detection model")
 ap.add_argument("-dc", "--yolov7_conf", type=float, default=0.6,
                 help="YOLOv7 detection model confidenece (0<conf<1)")
+ap.add_argument("--gpu", action='store_true',
+                help="use GPU")
 
 args = vars(ap.parse_args())
 DATASET_DIR = args["dataset"]
@@ -50,9 +51,17 @@ epochs = args["epochs"]
 batch_size = args["batch_size"]
 yolov7_model_path = args["yolov7_model"]
 yolov7_conf = args["yolov7_conf"]
+gpu_status = args['gpu']
+
+# some global params
+SIZE = (IMAGE_SIZE, IMAGE_SIZE)
+CHANNELS = 3
+
+# pattern to get videos and classes
+glob_pattern= DATASET_DIR + '/{classname}/*'
 
 # YOLOv7 Model
-yolov7_model = custom(path_or_model=yolov7_model_path)
+yolov7_custom_model = custom(path_or_model=yolov7_model_path, gpu=gpu_status)
 
 # Data Extraction Start
 s_time = time.time()
@@ -60,29 +69,38 @@ s_time = time.time()
 # Specify the list containing the names of the classes used for training. Feel free to choose any set of classes.
 CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
 
-# Create the dataset.
-features, labels, video_files_paths = create_dataset(
-    CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model, yolov7_conf)
+# for data augmentation
+# preprocessor = ImageDataGenerator(
+#     rotation_range=10,
+#     width_shift_range=0.1,
+#     height_shift_range=0.1
+# )
 
-# Total Data Size
-total_data = len(labels)
+# Create video frame generator
+train_gen = VideoFrameGenerator(
+    classes=CLASSES_LIST, 
+    glob_pattern=glob_pattern,
+    nb_frames=SEQUENCE_LENGTH,
+    split=.1, 
+    shuffle=True,
+    batch_size=batch_size,
+    target_shape=SIZE,
+    nb_channel=CHANNELS,
+    yolov7_model=yolov7_custom_model,
+    yolov7_conf=yolov7_conf,
+    # transformation=preprocessor,
+    use_frame_cache=False
+)
 
-# Using Keras's to_categorical method to convert labels into one-hot-encoded vectors
-one_hot_encoded_labels = tf.keras.utils.to_categorical(labels)
+# Validation Generator
+valid_gen = train_gen.get_validation_generator()
 
-# Split the Data into Train ( 80% ) and Test Set ( 20% ).
-features_train, features_test, labels_train, labels_test = train_test_split(
-    features, one_hot_encoded_labels, test_size=0.2, shuffle=True, random_state=seed_constant)
+# Data Size
+train_size = int(train_gen.files_count)
+val_size = int(valid_gen.files_count)
+total_data = train_size + val_size
 
-# Train and Test Data Size
-train_size = len(labels_train)
-val_size = len(labels_test)
-
-# Data Extraction End
-de_time = time.time()
-t1 = (de_time-s_time)/60
-print(f'[INFO] Data Extraction Completed in {round(t1, 2)} Minutes')
-
+# Model Selection
 if model_type == 'convLSTM':
     print("[INFO] Selected convLSTM Model")
     model = convlstm_model(SEQUENCE_LENGTH, IMAGE_SIZE, CLASSES_LIST)
@@ -125,21 +143,25 @@ print(f'[INFO] {model_type} Model Training Started...')
 # MLFlow
 mlflow.set_experiment('Action Recognition')
 with mlflow.start_run(run_name=f'{model_type}_model'):
-    mlflow.keras.autolog()
-
+    mlflow.tensorflow.autolog()
     # Start training the model.
-    history = model.fit(x=features_train, y=labels_train, epochs=epochs, batch_size=batch_size,
-                        shuffle=True, validation_split=0.2, callbacks=[early_stopping_callback])
+    history = model.fit(
+        train_gen,
+        validation_data=valid_gen,
+        batch_size=batch_size,
+        epochs=epochs,
+        callbacks=[early_stopping_callback]
+    )
 
     print(f'[INFO] Successfully Completed {model_type} Model Training')
 
     # Training End
     te_time = time.time()
-    t2 = (te_time-de_time)/60
-    print(f'[INFO] Model Training Completed in {round(t2, 2)} Minutes')
+    t2 = (te_time-s_time)/60
+    print(f'\33[5;30;46m [INFO] Model Training Completed in {round(t2, 2)} Minutes \33[0m')
 
     # Evaluate the trained model.
-    model_evaluation_history = model.evaluate(features_test, labels_test)
+    model_evaluation_history = model.evaluate(valid_gen)
 
     # Get the loss and accuracy from model_evaluation_history.
     model_evaluation_loss, model_evaluation_accuracy = model_evaluation_history
