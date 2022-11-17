@@ -4,6 +4,7 @@ import numpy as np
 from keras.models import load_model
 import argparse
 import os
+import tensorflow as tf
 
 
 ap = argparse.ArgumentParser()
@@ -37,8 +38,6 @@ CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
 # Load LRCN_model
 saved_model = load_model(path_to_model)
 
-# url_link = 'https://www.youtube.com/watch?v=8u0qjmHIOcE'
-# video_path = 'test.mp4'
 # Web-cam
 if video_path.isnumeric():
     video_path = int(video_path)
@@ -63,12 +62,15 @@ while video_reader.isOpened():
 
     if not success:
         break
+    
+    # BGR to RGB
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
     # Resize the Frame to fixed Dimensions.
-    resized_frame = cv2.resize(frame, (IMAGE_SIZE, IMAGE_SIZE))
+    resized_frame = cv2.resize(frame_rgb, (IMAGE_SIZE, IMAGE_SIZE))
 
-    # Normalize the resized frame by dividing it with 255 so that each pixel value then lies between 0 and 1.
-    normalized_frame = resized_frame / 255
+    # Normalize - between 0 and 1.
+    normalized_frame = tf.keras.utils.img_to_array(resized_frame) / 255.
 
     # Appending the pre-processed frame into the frames list.
     frames_queue.append(normalized_frame)
@@ -89,12 +91,15 @@ while video_reader.isOpened():
             predicted_class_name = CLASSES_LIST[predicted_label]
 
             # Write predicted class name on top of the frame.
-            cv2.putText(frame, predicted_class_name, (50, 60),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            cv2.putText(
+                frame, f'{predicted_class_name} {max(predicted_labels_probabilities):.4}',
+                (50, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2
+            )
 
         else:
             cv2.putText(frame, 'Action NOT Detetced', (50, 60),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+    
     # Write Video
     if save:
         out_vid.write(frame)
