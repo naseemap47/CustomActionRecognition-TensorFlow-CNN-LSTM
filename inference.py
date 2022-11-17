@@ -6,6 +6,7 @@ import argparse
 import os
 from utils.hubconf import custom
 from utils.plots import plot_one_box
+import tensorflow as tf
 
 
 ap = argparse.ArgumentParser()
@@ -28,6 +29,8 @@ ap.add_argument("-d", "--detect_model", type=str,  required=True,
                 help="path to YOLOv7 model")
 ap.add_argument("-dc", "--yolov7_conf", type=float, default=0.6,
                 help="YOLOv7 detection model confidenece (0<conf<1)")
+ap.add_argument("--gpu", action='store_true',
+                help="use GPU")
 
 args = vars(ap.parse_args())
 DATASET_DIR = args["dataset"]
@@ -39,6 +42,7 @@ thresh = args['act_conf']
 save = args['save']
 yolov7_model_path = args["detect_model"]
 yolov7_conf = args["yolov7_conf"]
+gpu_status = args['gpu']
 
 CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
 
@@ -46,7 +50,7 @@ CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
 saved_model = load_model(path_to_model)
 
 # YOLOv7 Model
-yolov7_model = custom(path_or_model=yolov7_model_path)
+yolov7_model = custom(path_or_model=yolov7_model_path, gpu=gpu_status)
 
 # Web-cam
 if video_path.isnumeric():
@@ -72,6 +76,9 @@ while video_reader.isOpened():
 
     if not success:
         break
+    
+    # RGB
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
     bbox_list = []
     # Action - ROI
@@ -87,13 +94,13 @@ while video_reader.isOpened():
     if len(bbox_list) > 0:
         for bbox in bbox_list:
             if bbox[4] > yolov7_conf:
-                frame_roi = frame[bbox[1]:bbox[3], bbox[0]:bbox[2]]
+                frame_roi = frame_rgb[bbox[1]:bbox[3], bbox[0]:bbox[2]]
 
                 # Resize the Frame to fixed Dimensions.
                 resized_frame = cv2.resize(frame_roi, (IMAGE_SIZE, IMAGE_SIZE))
 
                 # Normalize the resized frame by dividing it with 255 so that each pixel value then lies between 0 and 1.
-                normalized_frame = resized_frame / 255
+                normalized_frame = tf.keras.utils.img_to_array(resized_frame) / 255.
 
                 # Appending the pre-processed frame into the frames list.
                 frames_queue.append(normalized_frame)
