@@ -1,139 +1,474 @@
-import cv2
-import numpy as np
+"""
+VideoFrameGenerator - Simple Generator
+--------------------------------------
+A simple frame generator that takes distributed frames from
+videos. It is useful for videos that are scaled from frame 0 to end
+and that have no noise frames.
+"""
+
 import os
-from tqdm import tqdm
+import glob
+import numpy as np
+import cv2 as cv
+from math import floor
+import logging
+import re
+log = logging.getLogger()
+
+from keras.utils import Sequence
+from keras.preprocessing.image import ImageDataGenerator
+import tensorflow as tf
 
 
-def frames_extraction(video_path, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model, yolov7_conf):
-    '''
-    This function will extract the required frames from a video after resizing and normalizing them.
-    Args:
-        video_path: The path of the video in the disk, whose frames are to be extracted.
-    Returns:
-        frames_list: A list containing the resized and normalized frames of the video.
-    '''
+class VideoFrameGenerator(Sequence):
+    """
+    Create a generator that return batches of frames from video
+    - rescale: float fraction to rescale pixel data (commonly 1/255.)
+    - nb_frames: int, number of frames to return for each sequence
+    - classes: list of str, classes to infer
+    - batch_size: int, batch size for each loop
+    - use_frame_cache: bool, use frame cache (may take a lot of memory for \
+        large dataset)
+    - shape: tuple, target size of the frames
+    - shuffle: bool, randomize files
+    - transformation: ImageDataGenerator with transformations
+    - split: float, factor to split files and validation
+    - nb_channel: int, 1 or 3, to get grayscaled or RGB images
+    - glob_pattern: string, directory path with '{classname}' inside that \
+        will be replaced by one of the class list
+    - use_header: bool, default to True to use video header to read the \
+        frame count if possible
+    - yolov7_model: loaded YOLOv7 Detection Model
+    - yolov7_conf: YOLOv7 Detection confidence (0 < confidence < 1)
+    You may use the "classes" property to retrieve the class list afterward.
+    The generator has that properties initialized:
+    - classes_count: number of classes that the generator manages
+    - files_count: number of video that the generator can provides
+    - classes: the given class list
+    - files: the full file list that the generator will use, this \
+        is usefull if you want to remove some files that should not be \
+        used by the generator.
+    """
 
-    # Declare a list to store video frames.
-    frames_list = []
+    def __init__(
+            self,
+            rescale=1/255.,
+            nb_frames: int = 5,
+            classes: list = None,
+            batch_size: int = 16,
+            use_frame_cache: bool = False,
+            target_shape: tuple = (224, 224),
+            shuffle: bool = True,
+            transformation: ImageDataGenerator = None,
+            split_test: float = None,
+            split_val: float = None,
+            nb_channel: int = 3,
+            glob_pattern: str = './videos/{classname}/*.avi',
+            use_headers: bool = True,
+            yolov7_model = None,
+            yolov7_conf: float = 0.6,
+            *args,
+            **kwargs):
 
-    # Read the Video File using the VideoCapture object.
-    video_reader = cv2.VideoCapture(video_path)
+        # deprecation
+        if 'split' in kwargs:
+            log.warn("Warning, `split` argument is replaced by `split_val`, "
+                     "please condider to change your source code."
+                     "The `split` argument will be removed "
+                     "in future releases.")
+            split_val = float(kwargs.get('split'))
 
-    # Get the total number of frames in the video.
-    video_frames_count = int(video_reader.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.glob_pattern = glob_pattern
 
-    # Calculate the the interval after which frames will be added to the list.
-    skip_frames_window = max(int(video_frames_count/SEQUENCE_LENGTH), 1)
+        # should be only RGB or Grayscale
+        assert nb_channel in (1, 3)
 
-    # Iterate through the Video Frames.
-    for frame_counter in range(SEQUENCE_LENGTH):
+        if classes is None:
+            classes = self._discover_classes()
 
-        # Set the current frame position of the video.
-        video_reader.set(cv2.CAP_PROP_POS_FRAMES,
-                         frame_counter * skip_frames_window)
+        # we should have classes
+        if len(classes) == 0:
+            log.warn("You didn't provide classes list or "
+                     "we were not able to discover them from "
+                     "your pattern.\n"
+                     "Please check if the path is OK, and if the glob "
+                     "pattern is correct.\n"
+                     "See https://docs.python.org/3/library/glob.html")
 
-        # Reading the frame from the video.
-        success, frame = video_reader.read()
+        # shape size should be 2
+        assert len(target_shape) == 2
 
-        # Check if Video frame is not successfully read then break the loop
-        if not success:
-            print('[INFO] Video Reading Failed or Video Ended..')
-            break
+        # split factor should be a propoer value
+        if split_val is not None:
+            assert 0.0 < split_val < 1.0
 
-        bbox_list = []
-        # Action - ROI
-        results = yolov7_model(frame)
-        # Bounding Box
-        box = results.pandas().xyxy[0]
+        if split_test is not None:
+            assert 0.0 < split_test < 1.0
 
-        for i in box.index:
-            xmin, ymin, xmax, ymax, conf = int(box['xmin'][i]), int(box['ymin'][i]), int(
-                box['xmax'][i]), int(box['ymax'][i]), box['confidence'][i]
-            bbox_list.append([xmin, ymin, xmax, ymax, conf])
+        self.use_video_header = use_headers
 
-        if len(bbox_list) > 0:
-            # for bbox in bbox_list:
-            # Only taking One bbox
-            for bbox in bbox_list:
-                if bbox[4] > yolov7_conf:
-                    bbox1 = bbox_list[0]
+        # then we don't need None anymore
+        split_val = split_val if split_val is not None else 0.0
+        split_test = split_test if split_test is not None else 0.0
 
-                    frame_roi = frame[bbox1[1]:bbox1[3], bbox1[0]:bbox1[2]]
-                    # Resize the Frame to fixed height and width.
-                    resized_frame = cv2.resize(
-                        frame_roi, (IMAGE_SIZE, IMAGE_SIZE))
+        # be sure that classes are well ordered
+        classes.sort()
 
-                    # Normalize the resized frame by dividing it with 255 so that each pixel value then lies between 0 and 1
-                    normalized_frame = resized_frame / 255
+        self.rescale = rescale
+        self.classes = classes
+        self.batch_size = batch_size
+        self.nbframe = nb_frames
+        self.shuffle = shuffle
+        self.target_shape = target_shape
+        self.nb_channel = nb_channel
+        self.transformation = transformation
+        self.use_frame_cache = use_frame_cache
+        self.yolov7_model = yolov7_model
+        self.yolov7_conf = yolov7_conf
 
-                    # Append the normalized frame into the frames list
-                    frames_list.append(normalized_frame)
+        self._random_trans = []
+        self.__frame_cache = {}
+        self.files = []
+        self.validation = []
+        self.test = []
+
+        _validation_data = kwargs.get('_validation_data', None)
+        _test_data = kwargs.get('_test_data', None)
+
+        if _validation_data is not None:
+            # we only need to set files here
+            self.files = _validation_data
+
+        elif _test_data is not None:
+            # we only need to set files here
+            self.files = _test_data
+
+        else:
+            if split_val > 0 or split_test > 0:
+                for cls in classes:
+                    files = glob.glob(glob_pattern.format(classname=cls))
+                    nbval = 0
+                    nbtest = 0
+                    info = []
+
+                    # generate validation and test indexes
+                    indexes = np.arange(len(files))
+
+                    if shuffle:
+                        np.random.shuffle(indexes)
+
+                    if 0.0 < split_val < 1.0:
+                        nbval = int(split_val * len(files))
+                        nbtrain = len(files) - nbval
+
+                        # get some sample for validation_data
+                        val = np.random.permutation(indexes)[:nbval]
+
+                        # remove validation from train
+                        indexes = np.array(
+                            [i for i in indexes if i not in val])
+                        self.validation += [files[i] for i in val]
+                        info.append("validation count: %d" % nbval)
+
+                    if 0.0 < split_test < 1.0:
+                        nbtest = int(split_test * nbtrain)
+                        nbtrain = len(files) - nbval - nbtest
+
+                        # get some sample for test_data
+                        val_test = np.random.permutation(indexes)[:nbtest]
+
+                        # remove test from train
+                        indexes = np.array(
+                            [i for i in indexes if i not in val_test])
+                        self.test += [files[i] for i in val_test]
+                        info.append("test count: %d" % nbtest)
+
+                    # and now, make the file list
+                    self.files += [files[i] for i in indexes]
+                    print("class %s, %s, train count: %d" %
+                          (cls, ", ".join(info), nbtrain))
+
+            else:
+                for cls in classes:
+                    self.files += glob.glob(glob_pattern.format(classname=cls))
+
+        # build indexes
+        self.files_count = len(self.files)
+        self.indexes = np.arange(self.files_count)
+        self.classes_count = len(classes)
+
+        # to initialize transformations and shuffle indices
+        if 'no_epoch_at_init' not in kwargs:
+            self.on_epoch_end()
+
+        kind = "train"
+        if _validation_data is not None:
+            kind = "validation"
+        elif _test_data is not None:
+            kind = "test"
+
+        self._current = 0
+        self._framecounters = {}
+        print("Total data: %d classes for %d files for %s" % (
+            self.classes_count,
+            self.files_count,
+            kind))
+
+    def count_frames(self, cap, name, force_no_headers=False):
+        """ Count number of frame for video
+        if it's not possible with headers """
+        if not force_no_headers and name in self._framecounters:
+            return self._framecounters[name]
+
+        total = cap.get(cv.CAP_PROP_FRAME_COUNT)
+
+        if force_no_headers or total < 0:
+            # headers not ok
+            total = 0
+            # TODO: we're unable to use CAP_PROP_POS_FRAME here
+            # so we open a new capture to not change the
+            # pointer position of "cap"
+            c = cv.VideoCapture(name)
+            while True:
+                grabbed, frame = c.read()
+                if not grabbed:
+                    # rewind and stop
                     break
+                total += 1
 
-    # Release the VideoCapture object.
-    video_reader.release()
+        # keep the result
+        self._framecounters[name] = total
 
-    # Return the frames list.
-    return frames_list
+        return total
 
+    def _discover_classes(self):
+        pattern = os.path.realpath(self.glob_pattern)
+        pattern = re.escape(pattern)
+        pattern = pattern.replace('\\{classname\\}', '(.*?)')
+        pattern = pattern.replace('\\*', '.*')
 
-def create_dataset(CLASSES_LIST, DATASET_DIR, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model, yolov7_conf):
-    '''
-    This function will extract the data of the selected classes and create the required dataset.
-    Returns:
-        features:          A list containing the extracted frames of the videos.
-        labels:            A list containing the indexes of the classes associated with the videos.
-        video_files_paths: A list containing the paths of the videos in the disk.
-    '''
+        files = glob.glob(self.glob_pattern.replace('{classname}', '*'))
+        classes = set()
+        for f in files:
+            f = os.path.realpath(f)
+            cl = re.findall(pattern, f)[0]
+            classes.add(cl)
 
-    # Declared Empty Lists to store the features, labels and video file path values.
-    features = []
-    labels = []
-    video_files_paths = []
+        return list(classes)
 
-    # Iterating through all the classes mentioned in the classes list
-    for class_index, class_name in enumerate(CLASSES_LIST):
+    def next(self):
+        """ Return next element"""
+        elem = self[self._current]
+        self._current += 1
+        if self._current == len(self):
+            self._current = 0
+            self.on_epoch_end()
 
-        # Display the name of the class whose data is being extracted.
-        print(f'Extracting Data from Class: {class_name}')
+        return elem
 
-        # Get the list of video files present in the specific class name directory.
-        files_list = os.listdir(os.path.join(DATASET_DIR, class_name))
-        len_files_list = len(files_list)
+    def get_validation_generator(self):
+        """ Return the validation generator if you've provided split factor """
+        return self.__class__(
+            nb_frames=self.nbframe,
+            nb_channel=self.nb_channel,
+            target_shape=self.target_shape,
+            classes=self.classes,
+            batch_size=self.batch_size,
+            shuffle=self.shuffle,
+            rescale=self.rescale,
+            glob_pattern=self.glob_pattern,
+            use_headers=self.use_video_header,
+            _validation_data=self.validation,
+            yolov7_model = self.yolov7_model,
+            yolov7_conf=self.yolov7_conf)
 
-        # Iterate through all the files present in the files list.
-        for file_name_i in tqdm(range(0, len_files_list)):
+    def get_test_generator(self):
+        """ Return the validation generator if you've provided split factor """
+        return self.__class__(
+            nb_frames=self.nbframe,
+            nb_channel=self.nb_channel,
+            target_shape=self.target_shape,
+            classes=self.classes,
+            batch_size=self.batch_size,
+            shuffle=self.shuffle,
+            rescale=self.rescale,
+            glob_pattern=self.glob_pattern,
+            use_headers=self.use_video_header,
+            _test_data=self.test,
+            yolov7_model = self.yolov7_model,
+            yolov7_conf=self.yolov7_conf)
 
-            # Get the complete video path.
-            file_name = files_list[file_name_i]
-            video_file_path = os.path.join(DATASET_DIR, class_name, file_name)
+    def on_epoch_end(self):
+        """ Called by Keras after each epoch """
 
-            # Extract the frames of the video file.
-            frames = frames_extraction(
-                video_file_path, SEQUENCE_LENGTH, IMAGE_SIZE, yolov7_model, yolov7_conf)
+        if self.transformation is not None:
+            self._random_trans = []
+            for _ in range(self.files_count):
+                self._random_trans.append(
+                    self.transformation.get_random_transform(self.target_shape)
+                )
 
-            # Check if the extracted frames are equal to the SEQUENCE_LENGTH specified above.
-            # So ignore the vides having frames less than the SEQUENCE_LENGTH.
+        if self.shuffle:
+            np.random.shuffle(self.indexes)
 
-            if len(frames) < SEQUENCE_LENGTH:
-                print(
-                    f'[INFO] Length of Frame Sequence in your Data is: {len(frames)} Less than given Sequence Lenght: {SEQUENCE_LENGTH}\n')
-                print(
-                    '[INFO] Change the Data or Reduce Sequence Lenght (NOT Recommended)\nOtherwise')
-                print(
-                    f'[INFO] Detection Model NOT detetcting Action ROI, Reduce Min Object Detetction Confidence: {yolov7_conf}')
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self.next()
+
+    def __len__(self):
+        return int(np.floor(self.files_count / self.batch_size))
+
+    def __getitem__(self, index):
+        classes = self.classes
+        shape = self.target_shape
+        nbframe = self.nbframe
+
+        labels = []
+        images = []
+
+        indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
+
+        transformation = None
+
+        for i in indexes:
+            # prepare a transformation if provided
+            if self.transformation is not None:
+                transformation = self._random_trans[i]
+
+            video = self.files[i]
+            classname = self._get_classname(video)
+
+            # create a label array and set 1 to the right column
+            label = np.zeros(len(classes))
+            col = classes.index(classname)
+            label[col] = 1.
+
+            if video not in self.__frame_cache:
+                frames = self._get_frames(
+                    video,
+                    nbframe,
+                    shape,
+                    force_no_headers=not self.use_video_header)
+                if frames is None:
+                    # avoid failure, nevermind that video...
+                    continue
+
+                # add to cache
+                self.__frame_cache[video] = frames
+
+            else:
+                frames = self.__frame_cache[video]
+
+            # apply transformation
+            if transformation is not None:
+                frames = [self.transformation.apply_transform(
+                    frame, transformation) for frame in frames]
+
+            # add the sequence in batch
+            images.append(frames)
+            labels.append(label)
+
+        return np.array(images), np.array(labels)
+
+    def _get_classname(self, video: str) -> str:
+        """ Find classname from video filename following the pattern """
+
+        # work with real path
+        video = os.path.realpath(video)
+        pattern = os.path.realpath(self.glob_pattern)
+
+        # remove special regexp chars
+        pattern = re.escape(pattern)
+
+        # get back "*" to make it ".*" in regexp
+        pattern = pattern.replace('\\*', '.*')
+
+        # use {classname} as a capture
+        pattern = pattern.replace('\\{classname\\}', '(.*?)')
+
+        # and find all occurence
+        classname = re.findall(pattern, video)[0]
+        return classname
+
+    def _get_frames(self, video, nbframe, shape, force_no_headers=False):
+        cap = cv.VideoCapture(video)
+        total_frames = self.count_frames(cap, video, force_no_headers)
+        orig_total = total_frames
+        if total_frames % 2 != 0:
+            total_frames += 1
+        frame_step = floor(total_frames/(nbframe-1))
+        # TODO: fix that, a tiny video can have a frame_step that is
+        # under 1
+        frame_step = max(1, frame_step)
+        frames = []
+        frame_i = 0
+
+        while True:
+            grabbed, frame = cap.read()
+            if not grabbed:
                 break
 
-            if len(frames) == SEQUENCE_LENGTH:
+            frame_i += 1
+            if frame_i == 1 or frame_i % frame_step == 0 or frame_i == orig_total:
+                
+                bbox_list = []
+                # Action - ROI
+                results = self.yolov7_model(frame)
+                # Bounding Box
+                box = results.pandas().xyxy[0]
 
-                # Append the data to their repective lists.
-                features.append(frames)
-                labels.append(class_index)
-                video_files_paths.append(video_file_path)
+                for i in box.index:
+                    xmin, ymin, xmax, ymax, conf, class_id = int(box['xmin'][i]), int(box['ymin'][i]), int(
+                        box['xmax'][i]), int(box['ymax'][i]), box['confidence'][i], box['class'][i]
+                    
+                    if conf > self.yolov7_conf:
+                        # Only taking One bbox
+                        bbox_list.append([xmin, ymin, xmax, ymax, conf, class_id])
+                        break
 
-    # Converting the list to numpy arrays
-    features = np.asarray(features)
-    labels = np.array(labels)
+                if len(bbox_list) == 1:
+                    # Only taking One bbox
+                    bbox1 = bbox_list[0]
+                    frame_roi = frame[bbox1[1]:bbox1[3], bbox1[0]:bbox1[2]]
+        
+                    # resize
+                    frame_resize = cv.resize(frame_roi, shape)
 
-    # Return the frames, class index, and video file path.
-    return features, labels, video_files_paths
+                    # use RGB or Grayscale ?
+                    if self.nb_channel == 3:
+                        frame = cv.cvtColor(frame_resize, cv.COLOR_BGR2RGB)
+                    else:
+                        frame = cv.cvtColor(frame_resize, cv.COLOR_RGB2GRAY)
+
+                    # to np
+                    frame = tf.keras.utils.img_to_array(frame) * self.rescale
+
+                    # keep frame
+                    frames.append(frame)
+
+            if len(frames) == nbframe:
+                break
+
+        cap.release()
+
+        if not force_no_headers and len(frames) != nbframe:
+            # There is a problem here
+            # That means that frame count in header is wrong or broken,
+            # so we need to force the full read of video to get the right
+            # frame counter
+            return self._get_frames(
+                    video,
+                    nbframe,
+                    shape,
+                    force_no_headers=True)
+
+        if force_no_headers and len(frames) != nbframe:
+            # and if we really couldn't find the real frame counter
+            # so we return None. Sorry, nothing can be done...
+            log.error("\33[1;37;41m Frame count is not OK for video %s, "
+                      "%d total, %d extracted \33[0m" % (
+                        video, total_frames, len(frames)))
+            return None
+        return np.array(frames)
