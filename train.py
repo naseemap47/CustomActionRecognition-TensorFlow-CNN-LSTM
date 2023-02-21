@@ -197,12 +197,7 @@ with mlflow.start_run(run_name=f'{model_type}_model'):
     # If the plot already exist, remove
     metrics_png_name = f'{model_type}_metrics.png'
     path_to_metrics = os.path.join(path_to_model_dir, metrics_png_name)
-    plot_png = os.path.exists(path_to_metrics)
-    if plot_png:
-        os.remove(path_to_metrics)
-        plt.savefig(path_to_metrics, bbox_inches='tight')
-    else:
-        plt.savefig(path_to_metrics, bbox_inches='tight')
+    plt.savefig(path_to_metrics, bbox_inches='tight')
     print(f'\33[1;37;42m [INFO] Successfully Saved {metrics_png_name} \33[0m')
 
     # MLFlow Metrics
