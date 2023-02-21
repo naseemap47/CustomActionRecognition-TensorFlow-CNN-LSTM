@@ -18,6 +18,27 @@ log = logging.getLogger()
 from keras.utils import Sequence
 from keras.preprocessing.image import ImageDataGenerator
 import tensorflow as tf
+import h5py
+from keras.models import load_model
+from keras.models import save_model
+
+
+def load_model_ext(filepath):
+    model = load_model(filepath, custom_objects=None)
+    f = h5py.File(filepath, mode='r')
+    meta_data = None
+    if 'my_meta_data' in f.attrs:
+        meta_data = f.attrs.get('my_meta_data')
+    f.close()
+    return model, meta_data
+   
+
+def save_model_ext(model, filepath, overwrite=True, meta_data=None):
+    save_model(model, filepath, overwrite)
+    if meta_data is not None:
+        f = h5py.File(filepath, mode='a')
+        f.attrs['my_meta_data'] = meta_data
+        f.close()
 
 
 class VideoFrameGenerator(Sequence):
