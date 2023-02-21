@@ -5,6 +5,8 @@ from keras.models import load_model
 import argparse
 import os
 import tensorflow as tf
+from utils import load_model_ext
+import json
 
 
 ap = argparse.ArgumentParser()
@@ -25,7 +27,6 @@ ap.add_argument("--save", action='store_true',
                 help="Save video")
 
 args = vars(ap.parse_args())
-DATASET_DIR = args["dataset"]
 SEQUENCE_LENGTH = args["seq_len"]
 IMAGE_SIZE = args["size"]
 path_to_model = args["model"]
@@ -33,10 +34,11 @@ video_path = args["source"]
 thresh = args['conf']
 save = args['save']
 
-CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
 
 # Load LRCN_model
 saved_model = load_model(path_to_model)
+saved_model, CLASSES_LIST = load_model_ext(path_to_model)
+CLASSES_LIST = json.loads(CLASSES_LIST)
 
 # Web-cam
 if video_path.isnumeric():
