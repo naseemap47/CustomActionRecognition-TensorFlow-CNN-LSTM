@@ -7,11 +7,12 @@ import matplotlib.pyplot as plt
 import argparse
 import time
 import mlflow
+import json
 
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from models import convlstm_model, LRCN_model
 from keras.preprocessing.image import ImageDataGenerator
-from utils import VideoFrameGenerator
+from utils import VideoFrameGenerator, save_model_ext
 
 
 seed_constant = 27
@@ -57,6 +58,7 @@ s_time = time.time()
 
 # Specify the list containing the names of the classes used for training. Feel free to choose any set of classes.
 CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
+labels_string = json.dumps(CLASSES_LIST)
 
 # for data augmentation
 preprocessor = ImageDataGenerator(
@@ -165,7 +167,9 @@ with mlflow.start_run(run_name=f'{model_type}_model'):
 
     # Save your Model
     path_to_save_model = os.path.join(path_to_model_dir, model_file_name)
-    model.save(path_to_save_model)
+    # model.save(path_to_save_model)
+    # Saved model with class names
+    save_model_ext(model, path_to_save_model, meta_data=labels_string)
     print(f'\33[1;37;42m [INFO] Model {model_file_name} saved Successfully.. \33[0m')
 
     # Model Size
