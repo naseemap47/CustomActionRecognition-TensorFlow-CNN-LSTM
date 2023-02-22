@@ -133,3 +133,6 @@ mlruns
 
 # Data
 data
+
+# Train & Inference
+runs

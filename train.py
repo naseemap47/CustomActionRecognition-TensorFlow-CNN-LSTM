@@ -7,11 +7,12 @@ import matplotlib.pyplot as plt
 import argparse
 import time
 import mlflow
+import json
 
-from keras.callbacks import EarlyStopping
+from keras.callbacks import EarlyStopping, ModelCheckpoint
 from models import convlstm_model, LRCN_model
 from keras.preprocessing.image import ImageDataGenerator
-from utils import VideoFrameGenerator
+from utils import VideoFrameGenerator, save_model_ext
 
 
 seed_constant = 27
@@ -47,6 +48,7 @@ batch_size = args["batch_size"]
 # some global params
 SIZE = (IMAGE_SIZE, IMAGE_SIZE)
 CHANNELS = 3
+n = 0
 
 # pattern to get videos and classes
 glob_pattern= DATASET_DIR + '/{classname}/*'
@@ -56,13 +58,15 @@ s_time = time.time()
 
 # Specify the list containing the names of the classes used for training. Feel free to choose any set of classes.
 CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
+labels_string = json.dumps(CLASSES_LIST + [SEQUENCE_LENGTH, IMAGE_SIZE])
 
 # for data augmentation
-# preprocessor = ImageDataGenerator(
-#     rotation_range=10,
-#     width_shift_range=0.1,
-#     height_shift_range=0.1
-# )
+preprocessor = ImageDataGenerator(
+    rotation_range=10,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
+    horizontal_flip=True
+)
 
 # Create video frame generator
 train_gen = VideoFrameGenerator(
@@ -74,7 +78,7 @@ train_gen = VideoFrameGenerator(
     batch_size=batch_size,
     target_shape=SIZE,
     nb_channel=CHANNELS,
-    # transformation=preprocessor,
+    transformation=preprocessor,
     use_frame_cache=False
 )
 
@@ -99,15 +103,14 @@ else:
     print('\33[91m [INFO] Model NOT Choosen!! \33[0m')
 
 # Model Dir
-path_to_model_dir = f'{model_type}'
-if not os.path.isdir(path_to_model_dir):
-    os.makedirs(path_to_model_dir, exist_ok=True)
-    print(f'\33[92m [INFO] Created {path_to_model_dir} Folder \33[0m')
-else:
-    print(f'\33[93m [INFO] {path_to_model_dir} Folder Already Exist \33[0m')
-    f = glob.glob(path_to_model_dir + '/*')
-    for i in f:
-        os.remove(i)
+while True:
+    path_to_model_dir = f'runs/train/{model_type}{n}'
+    if not os.path.isdir(path_to_model_dir):
+        os.makedirs(path_to_model_dir, exist_ok=True)
+        print(f'\33[92m [INFO] Created {path_to_model_dir} Folder \33[0m')
+        break
+    else:
+        n += 1
 
 png_name = f'{model_type}_model_str.png'
 path_to_model_str = os.path.join(path_to_model_dir, png_name)
@@ -119,6 +122,13 @@ print(f'\33[92m [INFO] Successfully Created {png_name} \33[0m')
 # Create an Instance of Early Stopping Callback
 early_stopping_callback = EarlyStopping(
     monitor='val_loss', patience=15, mode='min', restore_best_weights=True)
+
+# Model Checkpoint
+ckpt_path = os.path.join(path_to_model_dir, "weight-{epoch:02d}-{val_accuracy:.2f}.h5")
+checkpoint = ModelCheckpoint(
+    ckpt_path, monitor='val_accuracy',
+    verbose=1, save_best_only=False, mode='max'
+)
 
 # Compile the model and specify loss function, optimizer and metrics values to the model
 model.compile(loss='categorical_crossentropy',
@@ -136,7 +146,7 @@ with mlflow.start_run(run_name=f'{model_type}_model'):
         validation_data=valid_gen,
         batch_size=batch_size,
         epochs=epochs,
-        callbacks=[early_stopping_callback]
+        callbacks=[early_stopping_callback, checkpoint]
     )
 
     print(f'\33[1;37;42m [INFO] Successfully Completed {model_type} Model Training \33[0m')
@@ -157,7 +167,9 @@ with mlflow.start_run(run_name=f'{model_type}_model'):
 
     # Save your Model
     path_to_save_model = os.path.join(path_to_model_dir, model_file_name)
-    model.save(path_to_save_model)
+    # model.save(path_to_save_model)
+    # Saved model with class names
+    save_model_ext(model, path_to_save_model, meta_data=labels_string)
     print(f'\33[1;37;42m [INFO] Model {model_file_name} saved Successfully.. \33[0m')
 
     # Model Size
@@ -189,12 +201,7 @@ with mlflow.start_run(run_name=f'{model_type}_model'):
     # If the plot already exist, remove
     metrics_png_name = f'{model_type}_metrics.png'
     path_to_metrics = os.path.join(path_to_model_dir, metrics_png_name)
-    plot_png = os.path.exists(path_to_metrics)
-    if plot_png:
-        os.remove(path_to_metrics)
-        plt.savefig(path_to_metrics, bbox_inches='tight')
-    else:
-        plt.savefig(path_to_metrics, bbox_inches='tight')
+    plt.savefig(path_to_metrics, bbox_inches='tight')
     print(f'\33[1;37;42m [INFO] Successfully Saved {metrics_png_name} \33[0m')
 
     # MLFlow Metrics

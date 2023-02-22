@@ -114,34 +114,27 @@ open a browser and type in http://localhost:1234 or
 http://127.0.0.1:1234
 
 ## 📺 Inference
-`--dataset`: path to dataset dir <br>
-`--seq_len`: The number of frames of a video that will be fed to the model as one sequence <br>
-`--size`: The height and width to which each video frame will be resized in our dataset <br>
 `--model`: path to trained custom model <br>
 `--conf`: Model Prediction Confidence <br>
 `--save`: Save output video ("output.mp4") <br>
 `--source`: path to test video
 - Web-cam: `--source 0`
 ```
-python3 inference.py --dataset data/ --seq_len 20 \
-                     --size 64 --model LRCN_model.h5 \
+python3 inference.py --model LRCN_model.h5 \
                      --conf 0.75 --source data/test/video.mp4
 
 # to save output video
-python3 inference.py --dataset data/ --seq_len 20 \
-                     --size 64 --model LRCN_model.h5 \
-                     --conf 0.75 --source data/test/video.mp4 \
+python3 inference.py --model LRCN_model.h5 --conf 0.75 \
+                     --source data/test/video.mp4 \
                      --save
 ```
 ```
 # web-cam
-python3 inference.py --dataset data/ --seq_len 20 \
-                     --size 64 --model LRCN_model.h5 \
+python3 inference.py --model LRCN_model.h5 \
                      --conf 0.75 --source 0
 
 # to save output video
-python3 inference.py --dataset data/ --seq_len 20 \
-                     --size 64 --model LRCN_model.h5 \
+python3 inference.py --model LRCN_model.h5 \
                      --conf 0.75 --source 0 \
                      --save
 ```
