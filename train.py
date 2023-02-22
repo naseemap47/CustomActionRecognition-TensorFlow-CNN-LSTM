@@ -58,7 +58,7 @@ s_time = time.time()
 
 # Specify the list containing the names of the classes used for training. Feel free to choose any set of classes.
 CLASSES_LIST = sorted(os.listdir(DATASET_DIR))
-labels_string = json.dumps(CLASSES_LIST)
+labels_string = json.dumps(CLASSES_LIST + [SEQUENCE_LENGTH, IMAGE_SIZE])
 
 # for data augmentation
 preprocessor = ImageDataGenerator(
