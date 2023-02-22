@@ -10,13 +10,6 @@ import json
 
 
 ap = argparse.ArgumentParser()
-ap.add_argument("-i", "--dataset", type=str, required=True,
-                help="path to csv Data")
-# Specify the number of frames of a video that will be fed to the model as one sequence.
-ap.add_argument("-l", "--seq_len", type=int, default=20,
-                help="length of Sequence")
-ap.add_argument("-s", "--size", type=int, default=64,
-                help="Specify the height and width to which each video frame will be resized in our dataset.")
 ap.add_argument("-m", "--model", type=str,  required=True,
                 help="path to model.h5")
 ap.add_argument("-v", "--source", type=str, required=True,
@@ -27,8 +20,6 @@ ap.add_argument("--save", action='store_true',
                 help="Save video")
 
 args = vars(ap.parse_args())
-SEQUENCE_LENGTH = args["seq_len"]
-IMAGE_SIZE = args["size"]
 path_to_model = args["model"]
 video_path = args["source"]
 thresh = args['conf']
@@ -37,8 +28,10 @@ save = args['save']
 
 # Load LRCN_model
 saved_model = load_model(path_to_model)
-saved_model, CLASSES_LIST = load_model_ext(path_to_model)
-CLASSES_LIST = json.loads(CLASSES_LIST)
+saved_model, meta_str = load_model_ext(path_to_model)
+CLASSES_LIST = json.loads(meta_str)
+SEQUENCE_LENGTH = CLASSES_LIST.pop(-2)
+IMAGE_SIZE = CLASSES_LIST.pop(-1)
 
 # Web-cam
 if video_path.isnumeric():
